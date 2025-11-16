@@ -13,7 +13,7 @@ import '../../presentation/screens/sync/sync_screen.dart';
 import '../../presentation/screens/reportes/reportes_screen.dart';
 import '../../presentation/screens/settings/settings_screen.dart';
 
-class RouterConfig {
+class AppRoutes {
   // Route names
   static const String splash = '/';
   static const String login = '/login';
@@ -30,17 +30,17 @@ class RouterConfig {
 
   // Routes map
   static Map<String, WidgetBuilder> get routes => {
-    splash: (context) => const SplashScreen(),
-    login: (context) => const LoginScreen(),
-    home: (context) => const HomeScreen(),
-    arbolList: (context) => const ArbolListScreen(),
-    arbolForm: (context) => const ArbolFormScreen(),
-    arbolDetail: (context) => const ArbolDetailScreen(),
-    parcelaList: (context) => const ParcelaListScreen(),
-    parcelaForm: (context) => const ParcelaFormScreen(),
-    especieList: (context) => const EspecieListScreen(),
-    sync: (context) => const SyncScreen(),
-    reportes: (context) => const ReportesScreen(),
-    settings: (context) => const SettingsScreen(),
-  };
+        splash: (context) => const SplashScreen(),
+        login: (context) => const LoginScreen(),
+        home: (context) => const HomeScreen(),
+        arbolList: (context) => const ArbolListScreen(),
+        arbolForm: (context) => const ArbolFormScreen(),
+        arbolDetail: (context) => const ArbolDetailScreen(),
+        parcelaList: (context) => const ParcelaListScreen(),
+        parcelaForm: (context) => const ParcelaFormScreen(),
+        especieList: (context) => const EspecieListScreen(),
+        sync: (context) => const SyncScreen(),
+        reportes: (context) => const ReportesScreen(),
+        settings: (context) => const SettingsScreen(),
+      };
 }

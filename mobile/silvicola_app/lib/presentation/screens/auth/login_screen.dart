@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../core/config/router_config.dart';
+import '../../../core/config/router_config.dart' as routes;
 import '../../providers/auth_provider.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -28,9 +28,9 @@ class _LoginScreenState extends State<LoginScreen> {
     if (_formKey.currentState!.validate()) {
       final authProvider = context.read<AuthProvider>();
       await authProvider.login(_emailController.text, _passwordController.text);
-      
+
       if (!mounted) return;
-      Navigator.pushReplacementNamed(context, RouterConfig.home);
+      Navigator.pushReplacementNamed(context, routes.AppRoutes.home);
     }
   }
 
@@ -79,8 +79,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     labelText: 'Contraseña',
                     prefixIcon: const Icon(Icons.lock),
                     suffixIcon: IconButton(
-                      icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
-                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                      icon: Icon(_obscurePassword
+                          ? Icons.visibility
+                          : Icons.visibility_off),
+                      onPressed: () =>
+                          setState(() => _obscurePassword = !_obscurePassword),
                     ),
                   ),
                   obscureText: _obscurePassword,

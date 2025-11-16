@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../core/config/router_config.dart';
+import '../../../core/config/router_config.dart' as routes;
 import '../../providers/auth_provider.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -20,12 +20,14 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> _navigateToNext() async {
     await Future.delayed(const Duration(seconds: 2));
-    
+
     if (!mounted) return;
-    
+
     final authProvider = context.read<AuthProvider>();
-    final route = authProvider.isAuthenticated ? RouterConfig.home : RouterConfig.login;
-    
+    final route = authProvider.isAuthenticated
+        ? routes.AppRoutes.home
+        : routes.AppRoutes.login;
+
     Navigator.pushReplacementNamed(context, route);
   }
 
@@ -33,7 +35,7 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).primaryColor,
-      body: Center(
+      body: const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -42,8 +44,8 @@ class _SplashScreenState extends State<SplashScreen> {
               size: 100,
               color: Colors.white,
             ),
-            const SizedBox(height: 24),
-            const Text(
+            SizedBox(height: 24),
+            Text(
               'Silvícola',
               style: TextStyle(
                 fontSize: 32,
@@ -51,8 +53,8 @@ class _SplashScreenState extends State<SplashScreen> {
                 color: Colors.white,
               ),
             ),
-            const SizedBox(height: 8),
-            const Text(
+            SizedBox(height: 8),
+            Text(
               'Inventario Forestal',
               style: TextStyle(
                 fontSize: 16,

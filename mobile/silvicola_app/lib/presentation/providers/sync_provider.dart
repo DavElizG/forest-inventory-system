@@ -12,7 +12,7 @@ class SyncProvider extends ChangeNotifier {
   Future<void> sync() async {
     _isSyncing = true;
     notifyListeners();
-    
+
     try {
       // TODO: Implementar sincronización
       _lastSyncTime = DateTime.now();

@@ -20,9 +20,6 @@ public class ApplicationDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // Enable PostGIS extension for spatial data
-        modelBuilder.HasPostgresExtension("postgis");
-
         // Apply all configurations from the current assembly
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
     }

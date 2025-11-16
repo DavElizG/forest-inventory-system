@@ -14,16 +14,16 @@ import 'presentation/providers/theme_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Cargar variables de entorno
   await dotenv.load(fileName: ".env");
-  
+
   // Inicializar base de datos local
   await DatabaseHelper.instance.database;
-  
+
   // Inicializar configuración
   await Environment.init();
-  
+
   runApp(
     MultiProvider(
       providers: [

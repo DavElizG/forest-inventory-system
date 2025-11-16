@@ -17,8 +17,10 @@ class Environment {
     dbName = dotenv.env['DB_NAME'] ?? 'silvicola_local.db';
     dbVersion = int.tryParse(dotenv.env['DB_VERSION'] ?? '1') ?? 1;
     googleMapsApiKey = dotenv.env['GOOGLE_MAPS_API_KEY'];
-    syncIntervalMinutes = int.tryParse(dotenv.env['SYNC_INTERVAL_MINUTES'] ?? '30') ?? 30;
-    maxRetryAttempts = int.tryParse(dotenv.env['MAX_RETRY_ATTEMPTS'] ?? '3') ?? 3;
+    syncIntervalMinutes =
+        int.tryParse(dotenv.env['SYNC_INTERVAL_MINUTES'] ?? '30') ?? 30;
+    maxRetryAttempts =
+        int.tryParse(dotenv.env['MAX_RETRY_ATTEMPTS'] ?? '3') ?? 3;
   }
 
   static bool get isDevelopment => environment == 'development';

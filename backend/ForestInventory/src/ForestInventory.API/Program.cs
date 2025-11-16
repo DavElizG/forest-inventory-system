@@ -1,5 +1,9 @@
 using ForestInventory.API.Extensions;
 using ForestInventory.API.Middlewares;
+using DotEnv.Core;
+
+// Load environment variables from .env file
+new EnvLoader().Load();
 
 var builder = WebApplication.CreateBuilder(args);
 

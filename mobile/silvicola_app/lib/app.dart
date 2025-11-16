@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import 'core/config/router_config.dart';
+import 'core/config/router_config.dart' as routes;
 import 'core/theme/app_theme.dart';
 import 'presentation/providers/theme_provider.dart';
 
@@ -18,8 +18,8 @@ class SilvicolaApp extends StatelessWidget {
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
           themeMode: themeProvider.themeMode,
-          initialRoute: RouterConfig.splash,
-          routes: RouterConfig.routes,
+          initialRoute: routes.AppRoutes.splash,
+          routes: routes.AppRoutes.routes,
         );
       },
     );

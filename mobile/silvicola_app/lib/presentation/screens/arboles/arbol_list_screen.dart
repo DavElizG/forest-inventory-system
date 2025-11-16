@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/config/router_config.dart';
+import '../../../core/config/router_config.dart' as routes;
 
 class ArbolListScreen extends StatelessWidget {
   const ArbolListScreen({super.key});
@@ -11,11 +11,12 @@ class ArbolListScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Árboles'),
       ),
-      body: Center(
-        child: const Text('Lista de árboles - TODO: Implementar'),
+      body: const Center(
+        child: Text('Lista de árboles - TODO: Implementar'),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => Navigator.pushNamed(context, RouterConfig.arbolForm),
+        onPressed: () =>
+            Navigator.pushNamed(context, routes.AppRoutes.arbolForm),
         child: const Icon(Icons.add),
       ),
     );

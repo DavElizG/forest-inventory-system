@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/config/router_config.dart';
+import '../../../core/config/router_config.dart' as routes;
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -13,7 +13,8 @@ class HomeScreen extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
-            onPressed: () => Navigator.pushNamed(context, RouterConfig.settings),
+            onPressed: () =>
+                Navigator.pushNamed(context, routes.AppRoutes.settings),
           ),
         ],
       ),
@@ -28,37 +29,37 @@ class HomeScreen extends StatelessWidget {
               context,
               'Árboles',
               Icons.park,
-              RouterConfig.arbolList,
+              routes.AppRoutes.arbolList,
             ),
             _buildMenuCard(
               context,
               'Parcelas',
               Icons.grid_on,
-              RouterConfig.parcelaList,
+              routes.AppRoutes.parcelaList,
             ),
             _buildMenuCard(
               context,
               'Especies',
               Icons.eco,
-              RouterConfig.especieList,
+              routes.AppRoutes.especieList,
             ),
             _buildMenuCard(
               context,
               'Sincronizar',
               Icons.sync,
-              RouterConfig.sync,
+              routes.AppRoutes.sync,
             ),
             _buildMenuCard(
               context,
               'Reportes',
               Icons.assessment,
-              RouterConfig.reportes,
+              routes.AppRoutes.reportes,
             ),
             _buildMenuCard(
               context,
               'Configuración',
               Icons.settings,
-              RouterConfig.settings,
+              routes.AppRoutes.settings,
             ),
           ],
         ),
@@ -66,7 +67,8 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMenuCard(BuildContext context, String title, IconData icon, String route) {
+  Widget _buildMenuCard(
+      BuildContext context, String title, IconData icon, String route) {
     return Card(
       child: InkWell(
         onTap: () => Navigator.pushNamed(context, route),
@@ -75,7 +77,9 @@ class HomeScreen extends StatelessWidget {
           children: [
             Icon(icon, size: 48, color: Theme.of(context).primaryColor),
             const SizedBox(height: 8),
-            Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+            Text(title,
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
           ],
         ),
       ),

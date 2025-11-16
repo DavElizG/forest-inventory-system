@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class ParcelaProvider extends ChangeNotifier {
-  List<dynamic> _parcelas = [];
+  final List<dynamic> _parcelas = [];
   bool _isLoading = false;
 
   List<dynamic> get parcelas => _parcelas;
