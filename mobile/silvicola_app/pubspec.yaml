@@ -1,0 +1,79 @@
+name: silvicola_app
+description: "Sistema de Inventario Forestal - Aplicación Móvil Offline-First"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State Management
+  provider: ^6.1.1
+  
+  # Local Database
+  sqflite: ^2.3.0
+  path_provider: ^2.1.1
+  
+  # Secure Storage
+  flutter_secure_storage: ^9.0.0
+  
+  # Network
+  dio: ^5.4.0
+  connectivity_plus: ^5.0.2
+  
+  # GPS & Location
+  geolocator: ^11.0.0
+  permission_handler: ^11.1.0
+  
+  # Maps
+  google_maps_flutter: ^2.5.0
+  flutter_map: ^6.1.0
+  latlong2: ^0.9.0
+  
+  # Camera & Images
+  image_picker: ^1.0.7
+  camera: ^0.10.5+9
+  
+  # File Export
+  excel: ^4.0.2
+  path: ^1.8.3
+  open_filex: ^4.3.4
+  share_plus: ^7.2.1
+  
+  # Utils
+  intl: ^0.19.0
+  uuid: ^4.3.3
+  equatable: ^2.0.5
+  logger: ^2.0.2+1
+  
+  # Environment Variables
+  flutter_dotenv: ^5.1.0
+  
+  # Icons
+  cupertino_icons: ^1.0.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  
+  flutter_lints: ^3.0.1
+  mockito: ^5.4.4
+  build_runner: ^2.4.8
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/icons/
+    - .env
+
+  # fonts:
+  #   - family: Roboto
+  #     fonts:
+  #       - asset: assets/fonts/Roboto-Regular.ttf
+  #       - asset: assets/fonts/Roboto-Bold.ttf
+  #         weight: 700
