@@ -1,0 +1,124 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: forestuser
+          POSTGRES_PASSWORD: forestpass
+          POSTGRES_DB: forestdb_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    defaults:
+      run:
+        working-directory: ./backend/ForestInventory
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+    
+    - name: Restore dependencies
+      run: dotnet restore
+    
+    - name: Build
+      run: dotnet build --no-restore --configuration Release
+    
+    - name: Run Unit Tests
+      run: dotnet test tests/ForestInventory.UnitTests --no-build --configuration Release --verbosity normal --logger "trx;LogFileName=unit-test-results.trx"
+      env:
+        DATABASE_URL: "Host=localhost;Port=5432;Database=forestdb_test;Username=forestuser;Password=forestpass"
+        JWT_SECRET_KEY: "test-secret-key-minimum-32-characters-long-for-testing-purposes"
+        JWT_ISSUER: "ForestInventoryAPI"
+        JWT_AUDIENCE: "ForestInventoryClients"
+    
+    - name: Run Integration Tests
+      run: dotnet test tests/ForestInventory.IntegrationTests --no-build --configuration Release --verbosity normal --logger "trx;LogFileName=integration-test-results.trx"
+      env:
+        DATABASE_URL: "Host=localhost;Port=5432;Database=forestdb_test;Username=forestuser;Password=forestpass"
+        JWT_SECRET_KEY: "test-secret-key-minimum-32-characters-long-for-testing-purposes"
+        JWT_ISSUER: "ForestInventoryAPI"
+        JWT_AUDIENCE: "ForestInventoryClients"
+    
+    - name: Publish Test Results
+      uses: EnricoMi/publish-unit-test-result-action@v2
+      if: always()
+      with:
+        files: |
+          backend/ForestInventory/tests/**/TestResults/*.trx
+    
+    - name: Code Coverage
+      run: dotnet test --no-build --configuration Release --collect:"XPlat Code Coverage" --results-directory ./coverage
+    
+    - name: Upload Coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        files: ./backend/ForestInventory/coverage/**/coverage.cobertura.xml
+        flags: backend
+        name: backend-coverage
+
+  security-scan:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend/ForestInventory
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Run Snyk Security Scan
+      uses: snyk/actions/dotnet@master
+      continue-on-error: true
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        args: --sarif-file-output=snyk.sarif
+    
+    - name: Upload result to GitHub Code Scanning
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: snyk.sarif
+
+  lint:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend/ForestInventory
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+    
+    - name: Install dotnet format
+      run: dotnet tool install -g dotnet-format
+    
+    - name: Run dotnet format
+      run: dotnet format --verify-no-changes --verbosity diagnostic

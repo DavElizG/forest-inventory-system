@@ -1,0 +1,101 @@
+version: '3.8'
+
+services:
+  # PostgreSQL 16 with PostGIS
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: forest_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: forestuser
+      POSTGRES_PASSWORD: forestpass
+      POSTGRES_DB: forestdb
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U forestuser -d forestdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - forest_network
+
+  # Backend API (.NET 8)
+  api:
+    build:
+      context: ./backend/ForestInventory
+      dockerfile: Dockerfile
+    container_name: forest_api
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5000
+      - DATABASE_URL=Host=postgres;Port=5432;Database=forestdb;Username=forestuser;Password=forestpass
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - JWT_ISSUER=ForestInventoryAPI
+      - JWT_AUDIENCE=ForestInventoryClients
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - CORS_ORIGINS=http://localhost:5173,http://web:80
+    ports:
+      - "5001:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - forest_network
+    volumes:
+      - api_uploads:/app/uploads
+
+  # Web Admin (React - Nginx)
+  web:
+    build:
+      context: ./web-admin/silvicola-web
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=http://localhost:5001
+        - VITE_API_VERSION=v1
+    container_name: forest_web
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+    networks:
+      - forest_network
+
+  # PgAdmin (opcional - para gestión de BD)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: forest_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@forestinventory.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - forest_network
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+
+networks:
+  forest_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  api_uploads:
+    driver: local
+  pgadmin_data:
+    driver: local

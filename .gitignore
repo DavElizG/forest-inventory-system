@@ -1,0 +1,103 @@
+# Environment variables - NEVER commit these files!
+.env
+.env.local
+.env.development
+.env.production
+.env.staging
+.env.test
+.env.*.local
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.*.example
+
+# Backend (.NET)
+**/bin/
+**/obj/
+**/*.user
+**/*.suo
+**/*.cache
+**/.vs/
+**/packages/
+**/TestResults/
+**/.vscode/settings.json
+
+# Mobile (Flutter)
+**/.*
+!.github/
+!.gitignore
+!.metadata
+**/build/
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.packages
+**/.pub-cache/
+**/.pub/
+**/coverage/
+**/android/.gradle/
+**/android/captures/
+**/android/local.properties
+**/android/key.properties
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+
+# Web Admin (Node/React)
+**/node_modules/
+**/dist/
+**/build/
+**/.pnpm-store/
+**/.turbo/
+**/*.log
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+**/pnpm-debug.log*
+**/.cache/
+
+# IDEs
+**/.idea/
+**/.vscode/*
+!**/.vscode/extensions.json
+!**/.vscode/launch.json
+**/*.swp
+**/*.swo
+**/*~
+
+# OS
+.DS_Store
+Thumbs.db
+*.log
+
+# Database
+**/*.db
+**/*.sqlite
+**/*.sqlite3
+
+# Uploads
+**/uploads/
+**/temp/
+
+# Security
+**/secrets/
+**/*.pem
+**/*.key
+**/*.crt
+
+# Docker
+**/.docker/
+**/docker-compose.override.yml
+
+# Logs
+**/logs/
+**/*.log
+
+# Test coverage
+**/coverage/
+**/.nyc_output/
+
+# Temporary files
+**/tmp/
+**/temp/
