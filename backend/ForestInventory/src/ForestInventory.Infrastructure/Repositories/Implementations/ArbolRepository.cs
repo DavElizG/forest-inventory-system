@@ -36,4 +36,9 @@ public class ArbolRepository : Repository<Arbol>, IArbolRepository
             .Include(a => a.Parcela)
             .ToListAsync();
     }
+
+    public async Task<IEnumerable<Arbol>> GetByParcelaAsync(Guid parcelaId)
+    {
+        return await GetByParcelaIdAsync(parcelaId);
+    }
 }

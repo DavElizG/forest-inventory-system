@@ -23,4 +23,11 @@ public class EspecieRepository : Repository<Especie>, IEspecieRepository
             .Where(e => e.Activo)
             .ToListAsync();
     }
+
+    public async Task<IEnumerable<Especie>> GetByFamiliaAsync(string familia)
+    {
+        return await _dbSet
+            .Where(e => e.Familia == familia)
+            .ToListAsync();
+    }
 }

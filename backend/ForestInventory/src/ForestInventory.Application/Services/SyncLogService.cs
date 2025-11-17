@@ -5,50 +5,40 @@ using Microsoft.Extensions.Logging;
 
 namespace ForestInventory.Application.Services;
 
-public class UsuarioService : IUsuarioService
+public class SyncLogService : ISyncLogService
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
-    private readonly ILogger<UsuarioService> _logger;
+    private readonly ILogger<SyncLogService> _logger;
 
-    public UsuarioService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<UsuarioService> logger)
+    public SyncLogService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<SyncLogService> logger)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _logger = logger;
     }
 
-    public Task<IEnumerable<UsuarioDto>> GetAllUsuariosAsync()
+    public Task<IEnumerable<SyncLogDto>> GetAllSyncLogsAsync()
     {
         throw new NotImplementedException("Service methods need to be implemented based on actual entity structure");
     }
 
-    public Task<UsuarioDto?> GetUsuarioByIdAsync(Guid id)
+    public Task<SyncLogDto?> GetSyncLogByIdAsync(Guid id)
     {
         throw new NotImplementedException("Service methods need to be implemented based on actual entity structure");
     }
 
-    public Task<UsuarioDto> CreateUsuarioAsync(CreateUsuarioDto dto)
+    public Task<IEnumerable<SyncLogDto>> GetSyncLogsByDispositivoAsync(string dispositivoId)
     {
         throw new NotImplementedException("Service methods need to be implemented based on actual entity structure");
     }
 
-    public Task<bool> UpdateUsuarioAsync(Guid id, UpdateUsuarioDto dto)
+    public Task<SyncLogDto> CreateSyncLogAsync(CreateSyncLogDto dto)
     {
         throw new NotImplementedException("Service methods need to be implemented based on actual entity structure");
     }
 
-    public Task<bool> DeleteUsuarioAsync(Guid id)
-    {
-        throw new NotImplementedException("Service methods need to be implemented based on actual entity structure");
-    }
-
-    public Task<UsuarioDto?> GetUsuarioByEmailAsync(string email)
-    {
-        throw new NotImplementedException("Service methods need to be implemented based on actual entity structure");
-    }
-
-    public Task<bool> ValidateCredentialsAsync(string email, string password)
+    public Task<object> GetSyncStatisticsAsync()
     {
         throw new NotImplementedException("Service methods need to be implemented based on actual entity structure");
     }

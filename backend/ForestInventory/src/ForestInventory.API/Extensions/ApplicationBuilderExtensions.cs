@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using AppInterfaces = ForestInventory.Application.Interfaces;
 
 namespace ForestInventory.API.Extensions;
 
@@ -34,7 +35,8 @@ public static class InfrastructureServiceExtensions
         services.AddScoped<IParcelaRepository, ParcelaRepository>();
         services.AddScoped<IEspecieRepository, EspecieRepository>();
         services.AddScoped<IUsuarioRepository, UsuarioRepository>();
-        services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<ISyncLogRepository, SyncLogRepository>();
+        services.AddScoped<AppInterfaces.IUnitOfWork, UnitOfWork>();
 
         return services;
     }

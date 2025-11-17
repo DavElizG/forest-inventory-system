@@ -32,4 +32,18 @@ public class ParcelaRepository : Repository<Parcela>, IParcelaRepository
             .Where(p => p.Activo)
             .ToListAsync();
     }
+
+    public async Task<IEnumerable<Parcela>> GetByUsuarioAsync(Guid usuarioId)
+    {
+        return await GetByUsuarioIdAsync(usuarioId);
+    }
+
+    async Task<IEnumerable<Parcela>> ForestInventory.Application.Interfaces.IParcelaRepository.GetByCodigoAsync(string codigo)
+    {
+        var parcela = await _dbSet
+            .Include(p => p.Arboles)
+            .FirstOrDefaultAsync(p => p.Codigo == codigo);
+        
+        return parcela != null ? new[] { parcela } : Array.Empty<Parcela>();
+    }
 }

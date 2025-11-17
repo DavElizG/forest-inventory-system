@@ -1,31 +1,35 @@
 using ForestInventory.Infrastructure.Data;
 using ForestInventory.Infrastructure.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore.Storage;
+using AppInterfaces = ForestInventory.Application.Interfaces;
 
 namespace ForestInventory.Infrastructure.Repositories.Implementations;
 
-public class UnitOfWork : IUnitOfWork
+public class UnitOfWork : AppInterfaces.IUnitOfWork
 {
     private readonly ApplicationDbContext _context;
     private IDbContextTransaction? _transaction;
 
-    public IArbolRepository Arboles { get; }
-    public IParcelaRepository Parcelas { get; }
-    public IEspecieRepository Especies { get; }
-    public IUsuarioRepository Usuarios { get; }
+    public AppInterfaces.IArbolRepository ArbolRepository { get; }
+    public AppInterfaces.IParcelaRepository ParcelaRepository { get; }
+    public AppInterfaces.IEspecieRepository EspecieRepository { get; }
+    public AppInterfaces.IUsuarioRepository UsuarioRepository { get; }
+    public AppInterfaces.ISyncLogRepository SyncLogRepository { get; }
 
     public UnitOfWork(
         ApplicationDbContext context,
         IArbolRepository arbolRepository,
         IParcelaRepository parcelaRepository,
         IEspecieRepository especieRepository,
-        IUsuarioRepository usuarioRepository)
+        IUsuarioRepository usuarioRepository,
+        ISyncLogRepository syncLogRepository)
     {
         _context = context;
-        Arboles = arbolRepository;
-        Parcelas = parcelaRepository;
-        Especies = especieRepository;
-        Usuarios = usuarioRepository;
+        ArbolRepository = arbolRepository;
+        ParcelaRepository = parcelaRepository;
+        EspecieRepository = especieRepository;
+        UsuarioRepository = usuarioRepository;
+        SyncLogRepository = syncLogRepository;
     }
 
     public async Task<int> SaveChangesAsync()

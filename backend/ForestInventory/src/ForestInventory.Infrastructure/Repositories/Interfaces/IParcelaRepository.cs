@@ -1,10 +1,9 @@
 using ForestInventory.Domain.Entities;
+using ForestInventory.Application.Interfaces;
 
 namespace ForestInventory.Infrastructure.Repositories.Interfaces;
 
-public interface IParcelaRepository : IRepository<Parcela>
+public interface IParcelaRepository : Application.Interfaces.IParcelaRepository
 {
-    Task<IEnumerable<Parcela>> GetByUsuarioIdAsync(Guid usuarioId);
-    Task<Parcela?> GetByCodigoAsync(string codigo);
     Task<IEnumerable<Parcela>> GetActivasAsync();
 }

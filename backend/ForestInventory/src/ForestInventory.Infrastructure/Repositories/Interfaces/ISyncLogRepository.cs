@@ -3,6 +3,6 @@ using ForestInventory.Application.Interfaces;
 
 namespace ForestInventory.Infrastructure.Repositories.Interfaces;
 
-public interface IUsuarioRepository : Application.Interfaces.IUsuarioRepository
+public interface ISyncLogRepository : Application.Interfaces.ISyncLogRepository
 {
 }

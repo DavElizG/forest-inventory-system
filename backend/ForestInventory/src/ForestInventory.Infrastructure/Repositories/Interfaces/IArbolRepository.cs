@@ -1,10 +1,10 @@
 using ForestInventory.Domain.Entities;
+using ForestInventory.Application.Interfaces;
 
 namespace ForestInventory.Infrastructure.Repositories.Interfaces;
 
-public interface IArbolRepository : IRepository<Arbol>
+public interface IArbolRepository : Application.Interfaces.IArbolRepository
 {
-    Task<IEnumerable<Arbol>> GetByParcelaIdAsync(Guid parcelaId);
     Task<IEnumerable<Arbol>> GetByEspecieIdAsync(Guid especieId);
     Task<IEnumerable<Arbol>> GetPendienteSincronizacionAsync();
 }

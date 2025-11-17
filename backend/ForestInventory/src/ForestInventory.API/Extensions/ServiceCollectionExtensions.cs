@@ -16,17 +16,20 @@ public static class ServiceCollectionExtensions
         // FluentValidation
         services.AddValidatorsFromAssembly(Assembly.Load("ForestInventory.Application"));
 
-        // Application Services
-        services.AddScoped<IAuthService, AuthService>();
+        // Application Services - only implemented ones
         services.AddScoped<IArbolService, ArbolService>();
         services.AddScoped<IParcelaService, ParcelaService>();
         services.AddScoped<IEspecieService, EspecieService>();
         services.AddScoped<IUsuarioService, UsuarioService>();
-        services.AddScoped<IReporteService, ReporteService>();
-        services.AddScoped<IEmailService, EmailService>();
-        services.AddScoped<IExcelExportService, ExcelExportService>();
-        services.AddScoped<IKmzExportService, KmzExportService>();
-        services.AddScoped<ISyncService, SyncService>();
+        services.AddScoped<ISyncLogService, SyncLogService>();
+        
+        // TODO: Implement remaining services
+        // services.AddScoped<IAuthService, AuthService>();
+        // services.AddScoped<IReporteService, ReporteService>();
+        // services.AddScoped<IEmailService, EmailService>();
+        // services.AddScoped<IExcelExportService, ExcelExportService>();
+        // services.AddScoped<IKmzExportService, KmzExportService>();
+        // services.AddScoped<ISyncService, SyncService>();
 
         return services;
     }
