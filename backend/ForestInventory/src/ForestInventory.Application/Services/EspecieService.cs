@@ -1,5 +1,6 @@
 using ForestInventory.Application.DTOs;
 using ForestInventory.Application.Interfaces;
+using ForestInventory.Domain.Entities;
 using AutoMapper;
 using Microsoft.Extensions.Logging;
 
@@ -18,33 +19,117 @@ public class EspecieService : IEspecieService
         _logger = logger;
     }
 
-    public Task<IEnumerable<EspecieDto>> GetAllEspeciesAsync()
+    public async Task<IEnumerable<EspecieDto>> GetAllEspeciesAsync()
     {
-        throw new NotImplementedException("Service methods need to be implemented based on actual entity structure");
+        try
+        {
+            var especies = await _unitOfWork.EspecieRepository.GetAllAsync();
+            return _mapper.Map<IEnumerable<EspecieDto>>(especies);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting all especies");
+            throw;
+        }
     }
 
-    public Task<EspecieDto?> GetEspecieByIdAsync(Guid id)
+    public async Task<EspecieDto?> GetEspecieByIdAsync(Guid id)
     {
-        throw new NotImplementedException("Service methods need to be implemented based on actual entity structure");
+        try
+        {
+            var especie = await _unitOfWork.EspecieRepository.GetByIdAsync(id);
+            return especie == null ? null : _mapper.Map<EspecieDto>(especie);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting especie by id: {EspecieId}", id);
+            throw;
+        }
     }
 
-    public Task<EspecieDto> CreateEspecieAsync(CreateEspecieDto dto)
+    public async Task<EspecieDto> CreateEspecieAsync(CreateEspecieDto dto)
     {
-        throw new NotImplementedException("Service methods need to be implemented based on actual entity structure");
+        try
+        {
+            var especie = new Especie
+            {
+                NombreComun = dto.NombreComun,
+                NombreCientifico = dto.NombreCientifico,
+                Familia = dto.Familia,
+                Descripcion = dto.Descripcion,
+                DensidadMadera = dto.DensidadMadera,
+                FechaCreacion = DateTime.UtcNow,
+                Activo = true
+            };
+
+            var created = await _unitOfWork.EspecieRepository.AddAsync(especie);
+            await _unitOfWork.SaveChangesAsync();
+
+            return _mapper.Map<EspecieDto>(created);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating especie: {NombreCientifico}", dto.NombreCientifico);
+            throw;
+        }
     }
 
-    public Task<bool> UpdateEspecieAsync(Guid id, UpdateEspecieDto dto)
+    public async Task<bool> UpdateEspecieAsync(Guid id, UpdateEspecieDto dto)
     {
-        throw new NotImplementedException("Service methods need to be implemented based on actual entity structure");
+        try
+        {
+            var especie = await _unitOfWork.EspecieRepository.GetByIdAsync(id);
+            if (especie == null)
+                return false;
+
+            if (dto.NombreComun != null) especie.NombreComun = dto.NombreComun;
+            if (dto.Descripcion != null) especie.Descripcion = dto.Descripcion;
+            if (dto.DensidadMadera.HasValue) especie.DensidadMadera = dto.DensidadMadera;
+            if (dto.Activo.HasValue) especie.Activo = dto.Activo.Value;
+
+            await _unitOfWork.EspecieRepository.UpdateAsync(especie);
+            await _unitOfWork.SaveChangesAsync();
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating especie: {EspecieId}", id);
+            throw;
+        }
     }
 
-    public Task<bool> DeleteEspecieAsync(Guid id)
+    public async Task<bool> DeleteEspecieAsync(Guid id)
     {
-        throw new NotImplementedException("Service methods need to be implemented based on actual entity structure");
+        try
+        {
+            var especie = await _unitOfWork.EspecieRepository.GetByIdAsync(id);
+            if (especie == null)
+                return false;
+
+            await _unitOfWork.EspecieRepository.DeleteAsync(especie);
+            await _unitOfWork.SaveChangesAsync();
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting especie: {EspecieId}", id);
+            throw;
+        }
     }
 
-    public Task<IEnumerable<EspecieDto>> GetEspeciesByFamiliaAsync(string familia)
+    public async Task<IEnumerable<EspecieDto>> GetEspeciesByFamiliaAsync(string familia)
     {
-        throw new NotImplementedException("Service methods need to be implemented based on actual entity structure");
+        try
+        {
+            var especies = await _unitOfWork.EspecieRepository.GetByFamiliaAsync(familia);
+            return _mapper.Map<IEnumerable<EspecieDto>>(especies);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting especies by familia: {Familia}", familia);
+            throw;
+        }
     }
 }

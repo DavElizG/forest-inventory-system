@@ -1,5 +1,7 @@
 using ForestInventory.Application.DTOs;
 using ForestInventory.Application.Interfaces;
+using ForestInventory.Domain.Entities;
+using ForestInventory.Domain.Enums;
 using AutoMapper;
 using Microsoft.Extensions.Logging;
 
@@ -18,33 +20,132 @@ public class ArbolService : IArbolService
         _logger = logger;
     }
 
-    public Task<IEnumerable<ArbolDto>> GetAllArbolesAsync()
+    public async Task<IEnumerable<ArbolDto>> GetAllArbolesAsync()
     {
-        throw new NotImplementedException("Service methods need to be implemented based on actual entity structure");
+        try
+        {
+            _logger.LogInformation("Getting all arboles");
+            var arboles = await _unitOfWork.ArbolRepository.GetAllAsync();
+            return _mapper.Map<IEnumerable<ArbolDto>>(arboles);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting all arboles");
+            throw;
+        }
     }
 
-    public Task<ArbolDto?> GetArbolByIdAsync(Guid id)
+    public async Task<ArbolDto?> GetArbolByIdAsync(Guid id)
     {
-        throw new NotImplementedException("Service methods need to be implemented based on actual entity structure");
+        try
+        {
+            var arbol = await _unitOfWork.ArbolRepository.GetByIdAsync(id);
+            return arbol == null ? null : _mapper.Map<ArbolDto>(arbol);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting arbol by id: {ArbolId}", id);
+            throw;
+        }
     }
 
-    public Task<IEnumerable<ArbolDto>> GetArbolesByParcelaAsync(Guid parcelaId)
+    public async Task<IEnumerable<ArbolDto>> GetArbolesByParcelaAsync(Guid parcelaId)
     {
-        throw new NotImplementedException("Service methods need to be implemented based on actual entity structure");
+        try
+        {
+            var arboles = await _unitOfWork.ArbolRepository.GetByParcelaAsync(parcelaId);
+            return _mapper.Map<IEnumerable<ArbolDto>>(arboles);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting arboles by parcela: {ParcelaId}", parcelaId);
+            throw;
+        }
     }
 
-    public Task<ArbolDto> CreateArbolAsync(CreateArbolDto dto)
+    public async Task<ArbolDto> CreateArbolAsync(CreateArbolDto dto)
     {
-        throw new NotImplementedException("Service methods need to be implemented based on actual entity structure");
+        try
+        {
+            _logger.LogInformation("Creating arbol in parcela: {ParcelaId}", dto.ParcelaId);
+
+            var arbol = new Arbol
+            {
+                Codigo = Guid.NewGuid().ToString().Substring(0, 8),
+                Latitud = dto.Latitud,
+                Longitud = dto.Longitud,
+                Altitud = 0,
+                Dap = dto.Diametro ?? 0,
+                Altura = dto.Altura ?? 0,
+                AlturaComercial = 0,
+                DiametroCopa = 0,
+                Estado = EstadoArbol.Sano,
+                Observaciones = dto.Descripcion,
+                FechaMedicion = DateTime.UtcNow,
+                ParcelaId = dto.ParcelaId,
+                EspecieId = dto.EspecieId,
+                UsuarioCreadorId = Guid.Empty,
+                FechaCreacion = DateTime.UtcNow,
+                Sincronizado = false
+            };
+
+            var createdArbol = await _unitOfWork.ArbolRepository.AddAsync(arbol);
+            await _unitOfWork.SaveChangesAsync();
+
+            return _mapper.Map<ArbolDto>(createdArbol);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating arbol in parcela: {ParcelaId}", dto.ParcelaId);
+            throw;
+        }
     }
 
-    public Task<bool> UpdateArbolAsync(Guid id, UpdateArbolDto dto)
+    public async Task<bool> UpdateArbolAsync(Guid id, UpdateArbolDto dto)
     {
-        throw new NotImplementedException("Service methods need to be implemented based on actual entity structure");
+        try
+        {
+            var arbol = await _unitOfWork.ArbolRepository.GetByIdAsync(id);
+            if (arbol == null)
+                return false;
+
+            if (dto.Diametro.HasValue) arbol.Dap = dto.Diametro.Value;
+            if (dto.Altura.HasValue) arbol.Altura = dto.Altura.Value;
+            if (dto.Descripcion != null) arbol.Observaciones = dto.Descripcion;
+            if (dto.EspecieId.HasValue) arbol.EspecieId = dto.EspecieId.Value;
+            if (dto.Activo.HasValue) arbol.Sincronizado = dto.Activo.Value;
+            
+            arbol.FechaUltimaActualizacion = DateTime.UtcNow;
+
+            await _unitOfWork.ArbolRepository.UpdateAsync(arbol);
+            await _unitOfWork.SaveChangesAsync();
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating arbol: {ArbolId}", id);
+            throw;
+        }
     }
 
-    public Task<bool> DeleteArbolAsync(Guid id)
+    public async Task<bool> DeleteArbolAsync(Guid id)
     {
-        throw new NotImplementedException("Service methods need to be implemented based on actual entity structure");
+        try
+        {
+            var arbol = await _unitOfWork.ArbolRepository.GetByIdAsync(id);
+            if (arbol == null)
+                return false;
+
+            await _unitOfWork.ArbolRepository.DeleteAsync(arbol);
+            await _unitOfWork.SaveChangesAsync();
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting arbol: {ArbolId}", id);
+            throw;
+        }
     }
 }

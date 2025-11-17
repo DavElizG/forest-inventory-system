@@ -30,8 +30,8 @@ public class ParcelasController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al obtener parcelas");
-            return StatusCode(500, "Error interno del servidor");
+            _logger.LogError(ex, "Error al obtener lista de parcelas");
+            return StatusCode(500, new { error = "Error al obtener parcelas", details = ex.Message });
         }
     }
 
@@ -50,8 +50,8 @@ public class ParcelasController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al obtener parcela");
-            return StatusCode(500, "Error interno del servidor");
+            _logger.LogError(ex, "Error al obtener parcela por ID: {Id}", id);
+            return StatusCode(500, new { error = "Error al obtener parcela", details = ex.Message });
         }
     }
 
@@ -68,8 +68,8 @@ public class ParcelasController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al obtener parcelas por usuario");
-            return StatusCode(500, "Error interno del servidor");
+            _logger.LogError(ex, "Error al obtener parcelas del usuario: {UsuarioId}", usuarioId);
+            return StatusCode(500, new { error = "Error al obtener parcelas del usuario", details = ex.Message });
         }
     }
 

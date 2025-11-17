@@ -30,8 +30,8 @@ public class EspeciesController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al obtener especies");
-            return StatusCode(500, "Error interno del servidor");
+            _logger.LogError(ex, "Error al obtener lista de especies");
+            return StatusCode(500, new { error = "Error al obtener especies", details = ex.Message });
         }
     }
 
@@ -50,8 +50,8 @@ public class EspeciesController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al obtener especie");
-            return StatusCode(500, "Error interno del servidor");
+            _logger.LogError(ex, "Error al obtener especie por ID: {Id}", id);
+            return StatusCode(500, new { error = "Error al obtener especie", details = ex.Message });
         }
     }
 
@@ -68,8 +68,8 @@ public class EspeciesController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al crear especie");
-            return StatusCode(500, "Error interno del servidor");
+            _logger.LogError(ex, "Error al crear especie: {NombreComun}", dto.NombreComun);
+            return StatusCode(500, new { error = "Error al crear especie", details = ex.Message });
         }
     }
 

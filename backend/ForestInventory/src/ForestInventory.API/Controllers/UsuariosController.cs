@@ -30,8 +30,8 @@ public class UsuariosController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al obtener usuarios");
-            return StatusCode(500, "Error interno del servidor");
+            _logger.LogError(ex, "Error al obtener lista de usuarios");
+            return StatusCode(500, new { error = "Error al obtener usuarios", details = ex.Message });
         }
     }
 
@@ -50,8 +50,8 @@ public class UsuariosController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al obtener usuario");
-            return StatusCode(500, "Error interno del servidor");
+            _logger.LogError(ex, "Error al obtener usuario por ID: {Id}", id);
+            return StatusCode(500, new { error = "Error al obtener usuario", details = ex.Message });
         }
     }
 
@@ -66,10 +66,15 @@ public class UsuariosController : ControllerBase
             var usuario = await _usuarioService.CreateUsuarioAsync(dto);
             return CreatedAtAction(nameof(GetById), new { id = usuario.Id }, usuario);
         }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Error de validación al crear usuario");
+            return BadRequest(new { error = ex.Message });
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al crear usuario");
-            return StatusCode(500, "Error interno del servidor");
+            _logger.LogError(ex, "Error inesperado al crear usuario");
+            return StatusCode(500, new { error = "Error al crear usuario", details = ex.Message });
         }
     }
 

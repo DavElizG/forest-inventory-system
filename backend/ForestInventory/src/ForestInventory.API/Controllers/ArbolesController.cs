@@ -30,8 +30,8 @@ public class ArbolesController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al obtener árboles");
-            return StatusCode(500, "Error interno del servidor");
+            _logger.LogError(ex, "Error al obtener lista de árboles");
+            return StatusCode(500, new { error = "Error al obtener árboles", details = ex.Message });
         }
     }
 
@@ -50,8 +50,8 @@ public class ArbolesController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al obtener árbol");
-            return StatusCode(500, "Error interno del servidor");
+            _logger.LogError(ex, "Error al obtener árbol por ID: {Id}", id);
+            return StatusCode(500, new { error = "Error al obtener árbol", details = ex.Message });
         }
     }
 
@@ -68,8 +68,8 @@ public class ArbolesController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al obtener árboles por parcela");
-            return StatusCode(500, "Error interno del servidor");
+            _logger.LogError(ex, "Error al obtener árboles por parcela: {ParcelaId}", parcelaId);
+            return StatusCode(500, new { error = "Error al obtener árboles de la parcela", details = ex.Message });
         }
     }
 

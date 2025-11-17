@@ -1,5 +1,6 @@
 using ForestInventory.Application.DTOs;
 using ForestInventory.Application.Interfaces;
+using ForestInventory.Domain.Entities;
 using AutoMapper;
 using Microsoft.Extensions.Logging;
 
@@ -18,38 +19,142 @@ public class ParcelaService : IParcelaService
         _logger = logger;
     }
 
-    public Task<IEnumerable<ParcelaDto>> GetAllParcelasAsync()
+    public async Task<IEnumerable<ParcelaDto>> GetAllParcelasAsync()
     {
-        throw new NotImplementedException("Service methods need to be implemented based on actual entity structure");
+        try
+        {
+            _logger.LogInformation("Getting all parcelas");
+            var parcelas = await _unitOfWork.ParcelaRepository.GetAllAsync();
+            return _mapper.Map<IEnumerable<ParcelaDto>>(parcelas);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting all parcelas");
+            throw;
+        }
     }
 
-    public Task<ParcelaDto?> GetParcelaByIdAsync(Guid id)
+    public async Task<ParcelaDto?> GetParcelaByIdAsync(Guid id)
     {
-        throw new NotImplementedException("Service methods need to be implemented based on actual entity structure");
+        try
+        {
+            var parcela = await _unitOfWork.ParcelaRepository.GetByIdAsync(id);
+            return parcela == null ? null : _mapper.Map<ParcelaDto>(parcela);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting parcela by id: {ParcelaId}", id);
+            throw;
+        }
     }
 
-    public Task<IEnumerable<ParcelaDto>> GetParcelasByUsuarioAsync(Guid usuarioId)
+    public async Task<IEnumerable<ParcelaDto>> GetParcelasByUsuarioAsync(Guid usuarioId)
     {
-        throw new NotImplementedException("Service methods need to be implemented based on actual entity structure");
+        try
+        {
+            var parcelas = await _unitOfWork.ParcelaRepository.GetByUsuarioAsync(usuarioId);
+            return _mapper.Map<IEnumerable<ParcelaDto>>(parcelas);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting parcelas by usuario: {UsuarioId}", usuarioId);
+            throw;
+        }
     }
 
-    public Task<ParcelaDto> CreateParcelaAsync(CreateParcelaDto dto)
+    public async Task<ParcelaDto> CreateParcelaAsync(CreateParcelaDto dto)
     {
-        throw new NotImplementedException("Service methods need to be implemented based on actual entity structure");
+        try
+        {
+            _logger.LogInformation("Creating parcela: {Codigo}", dto.Codigo);
+
+            var parcela = new Parcela
+            {
+                Codigo = dto.Codigo,
+                Nombre = dto.Nombre,
+                Latitud = dto.Latitud,
+                Longitud = dto.Longitud,
+                Altitud = dto.Altitud,
+                Area = dto.Area,
+                Descripcion = dto.Descripcion,
+                Ubicacion = dto.Ubicacion,
+                UsuarioCreadorId = dto.UsuarioCreadorId,
+                FechaCreacion = DateTime.UtcNow,
+                Activo = true
+            };
+
+            var createdParcela = await _unitOfWork.ParcelaRepository.AddAsync(parcela);
+            await _unitOfWork.SaveChangesAsync();
+
+            return _mapper.Map<ParcelaDto>(createdParcela);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating parcela: {Codigo}", dto.Codigo);
+            throw;
+        }
     }
 
-    public Task<bool> UpdateParcelaAsync(Guid id, UpdateParcelaDto dto)
+    public async Task<bool> UpdateParcelaAsync(Guid id, UpdateParcelaDto dto)
     {
-        throw new NotImplementedException("Service methods need to be implemented based on actual entity structure");
+        try
+        {
+            var parcela = await _unitOfWork.ParcelaRepository.GetByIdAsync(id);
+            if (parcela == null)
+                return false;
+
+            if (dto.Nombre != null) parcela.Nombre = dto.Nombre;
+            if (dto.Codigo != null) parcela.Codigo = dto.Codigo;
+            if (dto.Area.HasValue) parcela.Area = dto.Area.Value;
+            if (dto.Descripcion != null) parcela.Descripcion = dto.Descripcion;
+            if (dto.Ubicacion != null) parcela.Ubicacion = dto.Ubicacion;
+            if (dto.Activo.HasValue) parcela.Activo = dto.Activo.Value;
+            
+            parcela.FechaUltimaActualizacion = DateTime.UtcNow;
+
+            await _unitOfWork.ParcelaRepository.UpdateAsync(parcela);
+            await _unitOfWork.SaveChangesAsync();
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating parcela: {ParcelaId}", id);
+            throw;
+        }
     }
 
-    public Task<bool> DeleteParcelaAsync(Guid id)
+    public async Task<bool> DeleteParcelaAsync(Guid id)
     {
-        throw new NotImplementedException("Service methods need to be implemented based on actual entity structure");
+        try
+        {
+            var parcela = await _unitOfWork.ParcelaRepository.GetByIdAsync(id);
+            if (parcela == null)
+                return false;
+
+            await _unitOfWork.ParcelaRepository.DeleteAsync(parcela);
+            await _unitOfWork.SaveChangesAsync();
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting parcela: {ParcelaId}", id);
+            throw;
+        }
     }
 
-    public Task<IEnumerable<ParcelaDto>> GetParcelasByCodigoAsync(string codigo)
+    public async Task<IEnumerable<ParcelaDto>> GetParcelasByCodigoAsync(string codigo)
     {
-        throw new NotImplementedException("Service methods need to be implemented based on actual entity structure");
+        try
+        {
+            var parcelas = await _unitOfWork.ParcelaRepository.FindAsync(p => p.Codigo.Contains(codigo));
+            return _mapper.Map<IEnumerable<ParcelaDto>>(parcelas);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting parcelas by codigo: {Codigo}", codigo);
+            throw;
+        }
     }
 }
