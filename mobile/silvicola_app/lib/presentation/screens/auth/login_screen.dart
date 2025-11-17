@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/config/router_config.dart' as routes;
+import '../../../core/utils/error_helper.dart';
+import '../../../core/widgets/connectivity_widgets.dart';
 import '../../providers/auth_provider.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -16,6 +18,22 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _rememberMe = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _tryAutoLogin();
+  }
+
+  Future<void> _tryAutoLogin() async {
+    final authProvider = context.read<AuthProvider>();
+    final success = await authProvider.tryAutoLogin();
+    
+    if (success && mounted) {
+      Navigator.of(context).pushReplacementNamed(routes.AppRoutes.home);
+    }
+  }
 
   @override
   void dispose() {
@@ -25,12 +43,27 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleLogin() async {
-    if (_formKey.currentState!.validate()) {
-      final authProvider = context.read<AuthProvider>();
-      await authProvider.login(_emailController.text, _passwordController.text);
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
 
-      if (!mounted) return;
-      Navigator.pushReplacementNamed(context, routes.AppRoutes.home);
+    final authProvider = context.read<AuthProvider>();
+    
+    final success = await authProvider.login(
+      _emailController.text.trim(),
+      _passwordController.text,
+      rememberMe: _rememberMe,
+    );
+
+    if (!mounted) return;
+
+    if (success) {
+      Navigator.of(context).pushReplacementNamed(routes.AppRoutes.home);
+    } else {
+      ErrorHelper.showError(
+        context,
+        authProvider.errorMessage ?? 'Error al iniciar sesión',
+      );
     }
   }
 
@@ -87,21 +120,80 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   obscureText: _obscurePassword,
+                  textInputAction: TextInputAction.done,
+                  onFieldSubmitted: (_) => _handleLogin(),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Por favor ingrese su contraseña';
                     }
+                    if (value.length < 6) {
+                      return 'La contraseña debe tener al menos 6 caracteres';
+                    }
                     return null;
                   },
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 8),
+                
+                // Remember Me Checkbox
+                Row(
+                  children: [
+                    Checkbox(
+                      value: _rememberMe,
+                      onChanged: (value) {
+                        setState(() {
+                          _rememberMe = value ?? false;
+                        });
+                      },
+                    ),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _rememberMe = !_rememberMe;
+                          });
+                        },
+                        child: const Text('Mantener sesión activa'),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                
                 SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _handleLogin,
-                    child: const Text('Iniciar Sesión'),
+                  child: Consumer<AuthProvider>(
+                    builder: (context, auth, child) {
+                      return ElevatedButton(
+                        onPressed: auth.isLoading ? null : _handleLogin,
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.all(16),
+                        ),
+                        child: auth.isLoading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
+                                ),
+                              )
+                            : const Text(
+                                'Iniciar Sesión',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                      );
+                    },
                   ),
                 ),
+                const SizedBox(height: 16),
+                
+                // Connectivity Indicator
+                const ConnectivityIndicator(),
               ],
             ),
           ),

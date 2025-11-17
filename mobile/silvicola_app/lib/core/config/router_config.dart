@@ -10,6 +10,7 @@ import '../../presentation/screens/parcelas/parcela_list_screen.dart';
 import '../../presentation/screens/parcelas/parcela_form_screen.dart';
 import '../../presentation/screens/especies/especie_list_screen.dart';
 import '../../presentation/screens/sync/sync_screen.dart';
+import '../../presentation/pages/sync_preview_page.dart';
 import '../../presentation/screens/reportes/reportes_screen.dart';
 import '../../presentation/screens/settings/settings_screen.dart';
 
@@ -25,6 +26,7 @@ class AppRoutes {
   static const String parcelaForm = '/parcelas/form';
   static const String especieList = '/especies';
   static const String sync = '/sync';
+  static const String syncPreview = '/sync/preview';
   static const String reportes = '/reportes';
   static const String settings = '/settings';
 
@@ -40,6 +42,7 @@ class AppRoutes {
         parcelaForm: (context) => const ParcelaFormScreen(),
         especieList: (context) => const EspecieListScreen(),
         sync: (context) => const SyncScreen(),
+        syncPreview: (context) => const SyncPreviewPage(),
         reportes: (context) => const ReportesScreen(),
         settings: (context) => const SettingsScreen(),
       };
