@@ -23,8 +23,14 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUsuarioService, UsuarioService>();
         services.AddScoped<ISyncLogService, SyncLogService>();
         
+        // Authentication Service
+        services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<PasswordMigrationService>();
+        
+        // Export Service
+        services.AddScoped<IExportService, ExportService>();
+        
         // TODO: Implement remaining services
-        // services.AddScoped<IAuthService, AuthService>();
         // services.AddScoped<IReporteService, ReporteService>();
         // services.AddScoped<IEmailService, EmailService>();
         // services.AddScoped<IExcelExportService, ExcelExportService>();

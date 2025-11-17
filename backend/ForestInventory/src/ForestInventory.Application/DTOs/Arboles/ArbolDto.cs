@@ -14,6 +14,15 @@ public class ArbolDto
     public bool Activo { get; set; }
     public DateTime FechaCreacion { get; set; }
     public DateTime? FechaUltimaActualizacion { get; set; }
+    
+    // Propiedades adicionales para exportación
+    public string? EspecieNombre { get; set; }
+    public string? ParcelaCodigo { get; set; }
+    public double Dap { get; set; }
+    public int NumeroTallos { get; set; }
+    public string? EstadoSalud { get; set; }
+    public DateTime FechaMedicion { get; set; }
+    public string? Observaciones { get; set; }
 }
 
 public class CreateArbolDto
