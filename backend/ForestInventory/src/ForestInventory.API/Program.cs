@@ -27,6 +27,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// Redirect root to Swagger in development
+app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription();
+
 // Custom middlewares
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseMiddleware<RequestLoggingMiddleware>();
