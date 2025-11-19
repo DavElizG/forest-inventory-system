@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 /// Servicio para monitorear la conectividad a Internet
 class ConnectivityService extends ChangeNotifier {
   final Connectivity _connectivity = Connectivity();
-  StreamSubscription<ConnectivityResult>? _connectivitySubscription;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
   
   bool _isOnline = false;
   bool _isSyncing = false;
@@ -29,13 +29,13 @@ class ConnectivityService extends ChangeNotifier {
     }
   }
 
-  void _updateConnectionStatus(ConnectivityResult result) {
+  void _updateConnectionStatus(List<ConnectivityResult> results) {
     final wasOnline = _isOnline;
     
     // Verificar si hay al menos una conexión activa (WiFi, Móvil, Ethernet)
-    _isOnline = result == ConnectivityResult.wifi || 
-      result == ConnectivityResult.mobile ||
-      result == ConnectivityResult.ethernet;
+    _isOnline = results.contains(ConnectivityResult.wifi) || 
+      results.contains(ConnectivityResult.mobile) ||
+      results.contains(ConnectivityResult.ethernet);
     
     debugPrint('Estado de conexión: ${_isOnline ? "Online" : "Offline"}');
     
