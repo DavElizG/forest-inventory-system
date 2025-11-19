@@ -68,7 +68,7 @@ public class EspeciesController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al crear especie: {NombreComun}", dto.NombreComun);
+            _logger.LogError(ex, "Error al crear especie");
             return StatusCode(500, new { error = "Error al crear especie", details = ex.Message });
         }
     }

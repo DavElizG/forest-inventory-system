@@ -29,3 +29,21 @@ public class ChangePasswordDto
     [MinLength(6)]
     public string NewPassword { get; set; } = string.Empty;
 }
+
+public class RegisterDto
+{
+    [Required]
+    [EmailAddress]
+    public string Email { get; set; } = string.Empty;
+    
+    [Required]
+    [MinLength(8)]
+    public string Password { get; set; } = string.Empty;
+    
+    [Required]
+    [MinLength(3)]
+    public string NombreCompleto { get; set; } = string.Empty;
+    
+    [Required]
+    public string Rol { get; set; } = string.Empty;
+}

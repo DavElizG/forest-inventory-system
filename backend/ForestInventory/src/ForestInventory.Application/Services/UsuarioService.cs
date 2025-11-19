@@ -1,3 +1,4 @@
+using ForestInventory.Application.Common;
 using ForestInventory.Application.DTOs;
 using ForestInventory.Application.Interfaces;
 using ForestInventory.Domain.Entities;
@@ -43,7 +44,7 @@ public class UsuarioService : IUsuarioService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting usuario by id: {UsuarioId}", id);
+            _logger.LogError(ex, "Error getting usuario by id: {UsuarioId}", LogSanitizer.SanitizeGuid(id));
             throw;
         }
     }
@@ -75,7 +76,7 @@ public class UsuarioService : IUsuarioService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating usuario: {Email}", dto.Email);
+            _logger.LogError(ex, "Error creating usuario: {Email}", LogSanitizer.SanitizeEmail(dto.Email));
             throw;
         }
     }
@@ -100,7 +101,7 @@ public class UsuarioService : IUsuarioService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating usuario: {UsuarioId}", id);
+            _logger.LogError(ex, "Error updating usuario: {UsuarioId}", LogSanitizer.SanitizeGuid(id));
             throw;
         }
     }
@@ -120,7 +121,7 @@ public class UsuarioService : IUsuarioService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error deleting usuario: {UsuarioId}", id);
+            _logger.LogError(ex, "Error deleting usuario: {UsuarioId}", LogSanitizer.SanitizeGuid(id));
             throw;
         }
     }
@@ -134,7 +135,7 @@ public class UsuarioService : IUsuarioService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting usuario by email: {Email}", email);
+            _logger.LogError(ex, "Error getting usuario by email: {Email}", LogSanitizer.SanitizeEmail(email));
             throw;
         }
     }
@@ -152,7 +153,7 @@ public class UsuarioService : IUsuarioService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error validating credentials for email: {Email}", email);
+            _logger.LogError(ex, "Error validating credentials for email: {Email}", LogSanitizer.SanitizeEmail(email));
             throw;
         }
     }

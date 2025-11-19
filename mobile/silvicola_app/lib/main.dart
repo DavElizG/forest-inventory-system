@@ -74,7 +74,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ArbolProvider()),
         ChangeNotifierProvider(create: (_) => ParcelaProvider()),
         ChangeNotifierProvider(create: (_) => EspecieProvider()),
-        ChangeNotifierProvider(create: (_) => SyncProvider()),
+        ChangeNotifierProvider(create: (context) => SyncProvider(context.read<SyncService>())),
       ],
       child: const SilvicolaApp(),
     ),

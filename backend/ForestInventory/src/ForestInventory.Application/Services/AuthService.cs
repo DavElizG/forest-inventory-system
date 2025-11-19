@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Text;
 using AutoMapper;
 using BCrypt.Net;
+using ForestInventory.Application.Common;
 using ForestInventory.Application.DTOs;
 using ForestInventory.Application.Interfaces;
 using ForestInventory.Domain.Entities;
@@ -35,7 +36,7 @@ public class AuthService : IAuthService
     {
         try
         {
-            _logger.LogInformation("Intento de login para: {Email}", loginDto.Email);
+            _logger.LogInformation("Intento de login para: {Email}", LogSanitizer.SanitizeEmail(loginDto.Email));
 
             // Buscar usuario por email
             var usuario = await _unitOfWork.UsuarioRepository.GetByEmailAsync(loginDto.Email);
@@ -66,7 +67,7 @@ public class AuthService : IAuthService
             var token = await GenerateJwtTokenAsync(usuarioDto);
             var expiresAt = DateTime.UtcNow.AddHours(24);
 
-            _logger.LogInformation("Login exitoso para: {Email}", loginDto.Email);
+            _logger.LogInformation("Login exitoso para: {Email}", LogSanitizer.SanitizeEmail(loginDto.Email));
 
             return new LoginResponseDto
             {
@@ -81,7 +82,63 @@ public class AuthService : IAuthService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error en login para: {Email}", loginDto.Email);
+            _logger.LogError(ex, "Error en login para: {Email}", LogSanitizer.SanitizeEmail(loginDto.Email));
+            throw;
+        }
+    }
+
+    public async Task<LoginResponseDto> RegisterAsync(RegisterDto registerDto)
+    {
+        try
+        {
+            _logger.LogInformation("Intento de registro para: {Email}", LogSanitizer.SanitizeEmail(registerDto.Email));
+
+            // Verificar si el email ya existe
+            var existingUser = await _unitOfWork.UsuarioRepository.GetByEmailAsync(registerDto.Email);
+            if (existingUser != null)
+            {
+                throw new InvalidOperationException("El correo electrónico ya está registrado");
+            }
+
+            // Crear nuevo usuario
+            var usuario = new Usuario
+            {
+                Id = Guid.NewGuid(),
+                Email = registerDto.Email,
+                NombreCompleto = registerDto.NombreCompleto,
+                Rol = registerDto.Rol,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(registerDto.Password),
+                Activo = true,
+                FechaCreacion = DateTime.UtcNow,
+                FechaModificacion = DateTime.UtcNow,
+                UltimoAcceso = DateTime.UtcNow
+            };
+
+            // Guardar usuario
+            await _unitOfWork.UsuarioRepository.AddAsync(usuario);
+            await _unitOfWork.SaveChangesAsync();
+
+            // Generar token JWT
+            var usuarioDto = _mapper.Map<UsuarioDto>(usuario);
+            var token = await GenerateJwtTokenAsync(usuarioDto);
+            var expiresAt = DateTime.UtcNow.AddHours(24);
+
+            _logger.LogInformation("Registro exitoso para: {Email}", LogSanitizer.SanitizeEmail(registerDto.Email));
+
+            return new LoginResponseDto
+            {
+                Token = token,
+                Usuario = usuarioDto,
+                ExpiresAt = expiresAt
+            };
+        }
+        catch (InvalidOperationException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en registro para: {Email}", LogSanitizer.SanitizeEmail(registerDto.Email));
             throw;
         }
     }
@@ -227,12 +284,12 @@ public class AuthService : IAuthService
             // Generate a simple reset token (in production, use more secure token generation)
             var resetToken = Guid.NewGuid().ToString();
             
-            _logger.LogInformation("Password reset token generated for: {Email}", email);
+            _logger.LogInformation("Password reset token generated for: {Email}", LogSanitizer.SanitizeEmail(email));
             return resetToken;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error generating password reset token for: {Email}", email);
+            _logger.LogError(ex, "Error generating password reset token for: {Email}", LogSanitizer.SanitizeEmail(email));
             throw;
         }
     }

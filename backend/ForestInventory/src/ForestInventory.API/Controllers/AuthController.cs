@@ -1,3 +1,4 @@
+using ForestInventory.Application.Common;
 using ForestInventory.Application.DTOs;
 using ForestInventory.Application.Interfaces;
 using ForestInventory.Application.Services;
@@ -51,12 +52,48 @@ public class AuthController : ControllerBase
         }
         catch (UnauthorizedAccessException ex)
         {
-            _logger.LogWarning(ex, "Intento de login fallido para: {Email}", loginDto.Email);
+            _logger.LogWarning(ex, "Intento de login fallido para: {Email}", LogSanitizer.SanitizeEmail(loginDto.Email));
             return Unauthorized(new { error = "Credenciales inválidas" });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error en login para: {Email}", loginDto.Email);
+            _logger.LogError(ex, "Error en login para: {Email}", LogSanitizer.SanitizeEmail(loginDto.Email));
+            return StatusCode(500, new { error = "Error interno del servidor" });
+        }
+    }
+
+    /// <summary>
+    /// Registrar un nuevo usuario
+    /// </summary>
+    [HttpPost("register")]
+    public async Task<ActionResult<LoginResponseDto>> Register(RegisterDto registerDto)
+    {
+        try
+        {
+            var response = await _authService.RegisterAsync(registerDto);
+            
+            // Configurar cookie con el token JWT
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true, // HTTPS en producción
+                SameSite = SameSiteMode.Strict,
+                Expires = response.ExpiresAt
+            };
+            
+            Response.Cookies.Append("jwt_token", response.Token, cookieOptions);
+            
+            // No devolver el token en el response por seguridad
+            return Ok(new { usuario = response.Usuario, expiresAt = response.ExpiresAt });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Intento de registro fallido para: {Email}", LogSanitizer.SanitizeEmail(registerDto.Email));
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error en registro para: {Email}", LogSanitizer.SanitizeEmail(registerDto.Email));
             return StatusCode(500, new { error = "Error interno del servidor" });
         }
     }

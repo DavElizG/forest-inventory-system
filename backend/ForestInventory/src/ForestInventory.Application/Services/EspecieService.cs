@@ -1,3 +1,4 @@
+using ForestInventory.Application.Common;
 using ForestInventory.Application.DTOs;
 using ForestInventory.Application.Interfaces;
 using ForestInventory.Domain.Entities;
@@ -69,7 +70,7 @@ public class EspecieService : IEspecieService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating especie: {NombreCientifico}", dto.NombreCientifico);
+            _logger.LogError(ex, "Error creating especie: {NombreCientifico}", LogSanitizer.SanitizeText(dto.NombreCientifico));
             throw;
         }
     }

@@ -3,6 +3,7 @@ using System.IO.Compression;
 using System.Text;
 using AutoMapper;
 using CsvHelper;
+using ForestInventory.Application.Common;
 using ForestInventory.Application.DTOs;
 using ForestInventory.Application.Interfaces;
 using Microsoft.Extensions.Logging;
@@ -26,7 +27,7 @@ public class ExportService : IExportService
     {
         try
         {
-            _logger.LogInformation("Iniciando exportación CSV de árboles. ParcelaId: {ParcelaId}", parcelaId);
+            _logger.LogInformation("Iniciando exportación CSV de árboles. ParcelaId: {ParcelaId}", LogSanitizer.SanitizeGuid(parcelaId));
 
             var arboles = parcelaId.HasValue 
                 ? await _unitOfWork.ArbolRepository.GetByParcelaAsync(parcelaId.Value)
@@ -96,7 +97,7 @@ public class ExportService : IExportService
     {
         try
         {
-            _logger.LogInformation("Iniciando exportación KML de árboles. ParcelaId: {ParcelaId}", parcelaId);
+            _logger.LogInformation("Iniciando exportación KML de árboles. ParcelaId: {ParcelaId}", LogSanitizer.SanitizeGuid(parcelaId));
 
             var arboles = parcelaId.HasValue 
                 ? await _unitOfWork.ArbolRepository.GetByParcelaAsync(parcelaId.Value)

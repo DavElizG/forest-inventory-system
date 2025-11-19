@@ -77,6 +77,49 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  // Register new user
+  Future<bool> register({
+    required String email,
+    required String password,
+    required String nombreCompleto,
+    required String rol,
+  }) async {
+    try {
+      _isLoading = true;
+      _errorMessage = null;
+      notifyListeners();
+
+      final response = await _authService.register(
+        email: email,
+        password: password,
+        nombreCompleto: nombreCompleto,
+        rol: rol,
+      );
+      final loginResponse = LoginResponse.fromJson(response);
+
+      _isAuthenticated = true;
+      _currentUser = loginResponse.usuario;
+      _rememberMe = false;
+      _errorMessage = null;
+
+      // Guardar datos del usuario
+      await _storage.saveUserData(_currentUser!.toJson());
+      
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _isAuthenticated = false;
+      _currentUser = null;
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      
+      notifyListeners();
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   // Logout
   Future<void> logout() async {
     try {

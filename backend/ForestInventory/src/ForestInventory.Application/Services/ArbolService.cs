@@ -1,3 +1,4 @@
+using ForestInventory.Application.Common;
 using ForestInventory.Application.DTOs;
 using ForestInventory.Application.Interfaces;
 using ForestInventory.Domain.Entities;
@@ -67,7 +68,7 @@ public class ArbolService : IArbolService
     {
         try
         {
-            _logger.LogInformation("Creating arbol in parcela: {ParcelaId}", dto.ParcelaId);
+            _logger.LogInformation("Creating arbol in parcela: {ParcelaId}", LogSanitizer.SanitizeGuid(dto.ParcelaId));
 
             var arbol = new Arbol
             {
@@ -96,7 +97,7 @@ public class ArbolService : IArbolService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating arbol in parcela: {ParcelaId}", dto.ParcelaId);
+            _logger.LogError(ex, "Error creating arbol in parcela: {ParcelaId}", LogSanitizer.SanitizeGuid(dto.ParcelaId));
             throw;
         }
     }

@@ -1,3 +1,4 @@
+using ForestInventory.Application.Common;
 using ForestInventory.Application.DTOs;
 using ForestInventory.Application.Interfaces;
 using ForestInventory.Domain.Entities;
@@ -57,7 +58,7 @@ public class ParcelaService : IParcelaService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting parcelas by usuario: {UsuarioId}", usuarioId);
+            _logger.LogError(ex, "Error getting parcelas by usuario: {UsuarioId}", LogSanitizer.SanitizeGuid(usuarioId));
             throw;
         }
     }
@@ -66,7 +67,7 @@ public class ParcelaService : IParcelaService
     {
         try
         {
-            _logger.LogInformation("Creating parcela: {Codigo}", dto.Codigo);
+            _logger.LogInformation("Creating parcela: {Codigo}", LogSanitizer.SanitizeText(dto.Codigo));
 
             var parcela = new Parcela
             {
@@ -90,7 +91,7 @@ public class ParcelaService : IParcelaService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating parcela: {Codigo}", dto.Codigo);
+            _logger.LogError(ex, "Error creating parcela: {Codigo}", LogSanitizer.SanitizeText(dto.Codigo));
             throw;
         }
     }
@@ -153,7 +154,7 @@ public class ParcelaService : IParcelaService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting parcelas by codigo: {Codigo}", codigo);
+            _logger.LogError(ex, "Error getting parcelas by codigo: {Codigo}", LogSanitizer.SanitizeText(codigo));
             throw;
         }
     }

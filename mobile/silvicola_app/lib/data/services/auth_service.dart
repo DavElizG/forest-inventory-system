@@ -28,6 +28,30 @@ class AuthService {
     }
   }
 
+  // Register new user
+  Future<Map<String, dynamic>> register({
+    required String email,
+    required String password,
+    required String nombreCompleto,
+    required String rol,
+  }) async {
+    try {
+      final response = await _apiService.post(
+        '/Auth/register',
+        data: {
+          'email': email,
+          'password': password,
+          'nombreCompleto': nombreCompleto,
+          'rol': rol,
+        },
+      );
+
+      return _apiService.parseResponse(response);
+    } catch (e) {
+      throw Exception('Registration failed: ${e.toString()}');
+    }
+  }
+
   // Logout
   Future<void> logout() async {
     try {

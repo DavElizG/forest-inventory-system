@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using ForestInventory.Application.Common;
 using ForestInventory.Application.Interfaces;
 using ForestInventory.Application.DTOs;
 
@@ -68,7 +69,7 @@ public class ParcelasController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error al obtener parcelas del usuario: {UsuarioId}", usuarioId);
+            _logger.LogError(ex, "Error al obtener parcelas del usuario: {UsuarioId}", LogSanitizer.SanitizeGuid(usuarioId));
             return StatusCode(500, new { error = "Error al obtener parcelas del usuario", details = ex.Message });
         }
     }

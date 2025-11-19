@@ -1,3 +1,4 @@
+using ForestInventory.Application.Common;
 using ForestInventory.Application.Interfaces;
 using Microsoft.Extensions.Logging;
 using BCrypt.Net;
@@ -43,7 +44,7 @@ public class PasswordMigrationService
                     await _unitOfWork.UsuarioRepository.UpdateAsync(usuario);
                     
                     migratedCount++;
-                    _logger.LogInformation("Contraseña migrada para usuario: {Email}", usuario.Email);
+                    _logger.LogInformation("Contraseña migrada para usuario: {Email}", LogSanitizer.SanitizeEmail(usuario.Email));
                 }
             }
 
