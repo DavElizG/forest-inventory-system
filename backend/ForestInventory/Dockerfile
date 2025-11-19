@@ -3,16 +3,16 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
 # Copiar archivos de proyecto y restaurar dependencias
-COPY ["src/ForestInventory.API/ForestInventory.API.csproj", "src/ForestInventory.API/"]
-COPY ["src/ForestInventory.Application/ForestInventory.Application.csproj", "src/ForestInventory.Application/"]
-COPY ["src/ForestInventory.Domain/ForestInventory.Domain.csproj", "src/ForestInventory.Domain/"]
-COPY ["src/ForestInventory.Infrastructure/ForestInventory.Infrastructure.csproj", "src/ForestInventory.Infrastructure/"]
+COPY ["backend/ForestInventory/src/ForestInventory.API/ForestInventory.API.csproj", "ForestInventory.API/"]
+COPY ["backend/ForestInventory/src/ForestInventory.Application/ForestInventory.Application.csproj", "ForestInventory.Application/"]
+COPY ["backend/ForestInventory/src/ForestInventory.Domain/ForestInventory.Domain.csproj", "ForestInventory.Domain/"]
+COPY ["backend/ForestInventory/src/ForestInventory.Infrastructure/ForestInventory.Infrastructure.csproj", "ForestInventory.Infrastructure/"]
 
-RUN dotnet restore "src/ForestInventory.API/ForestInventory.API.csproj"
+RUN dotnet restore "ForestInventory.API/ForestInventory.API.csproj"
 
 # Copiar el resto del código y compilar
-COPY . .
-WORKDIR "/src/src/ForestInventory.API"
+COPY backend/ForestInventory/ .
+WORKDIR "/src/ForestInventory.API"
 RUN dotnet build "ForestInventory.API.csproj" -c Release -o /app/build
 
 # Stage 2: Publish
