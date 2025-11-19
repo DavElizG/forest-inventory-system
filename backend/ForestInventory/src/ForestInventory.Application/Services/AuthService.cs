@@ -7,6 +7,7 @@ using ForestInventory.Application.Common;
 using ForestInventory.Application.DTOs;
 using ForestInventory.Application.Interfaces;
 using ForestInventory.Domain.Entities;
+using ForestInventory.Domain.Enums;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
