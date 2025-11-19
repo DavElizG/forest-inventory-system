@@ -10,8 +10,9 @@ COPY ["backend/ForestInventory/src/ForestInventory.Infrastructure/ForestInventor
 
 RUN dotnet restore "ForestInventory.API/ForestInventory.API.csproj"
 
-# Copiar el resto del código y compilar
-COPY backend/ForestInventory/ .
+# Copiar archivos de código fuente
+COPY backend/ForestInventory/src/ ./
+
 WORKDIR "/src/ForestInventory.API"
 RUN dotnet build "ForestInventory.API.csproj" -c Release -o /app/build
 
