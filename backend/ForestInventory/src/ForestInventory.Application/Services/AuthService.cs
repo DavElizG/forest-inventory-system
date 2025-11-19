@@ -101,16 +101,21 @@ public class AuthService : IAuthService
             }
 
             // Crear nuevo usuario
+            // Convertir string Rol a enum RolUsuario
+            if (!Enum.TryParse<RolUsuario>(registerDto.Rol, ignoreCase: true, out var rolEnum))
+            {
+                throw new ArgumentException($"Rol inválido: {registerDto.Rol}");
+            }
+
             var usuario = new Usuario
             {
                 Id = Guid.NewGuid(),
                 Email = registerDto.Email,
                 NombreCompleto = registerDto.NombreCompleto,
-                Rol = registerDto.Rol,
+                Rol = rolEnum,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(registerDto.Password),
                 Activo = true,
                 FechaCreacion = DateTime.UtcNow,
-                FechaModificacion = DateTime.UtcNow,
                 UltimoAcceso = DateTime.UtcNow
             };
 
@@ -187,7 +192,7 @@ public class AuthService : IAuthService
         }
     }
 
-    public async Task<string> GenerateJwtTokenAsync(UsuarioDto usuario)
+    public Task<string> GenerateJwtTokenAsync(UsuarioDto usuario)
     {
         try
         {
@@ -218,7 +223,7 @@ public class AuthService : IAuthService
 
             var tokenHandler = new JwtSecurityTokenHandler();
             var token = tokenHandler.CreateToken(tokenDescriptor);
-            return tokenHandler.WriteToken(token);
+            return Task.FromResult(tokenHandler.WriteToken(token));
         }
         catch (Exception ex)
         {
@@ -227,7 +232,7 @@ public class AuthService : IAuthService
         }
     }
 
-    public async Task<bool> ValidateTokenAsync(string token)
+    public Task<bool> ValidateTokenAsync(string token)
     {
         try
         {
@@ -253,12 +258,12 @@ public class AuthService : IAuthService
                 ClockSkew = TimeSpan.Zero
             }, out SecurityToken validatedToken);
 
-            return validatedToken != null;
+            return Task.FromResult(validatedToken != null);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Token validation failed");
-            return false;
+            return Task.FromResult(false);
         }
     }
 
@@ -275,6 +280,7 @@ public class AuthService : IAuthService
     {
         try
         {
+            await Task.CompletedTask; // Satisfy async signature
             var usuario = await _unitOfWork.UsuarioRepository.GetByEmailAsync(email);
             if (usuario == null)
             {
@@ -307,6 +313,7 @@ public class AuthService : IAuthService
 
             // In production, find user by stored token and validate expiration
             // For now, this is a placeholder implementation
+            await Task.CompletedTask; // Satisfy async signature
             _logger.LogInformation("Password reset completed for token: {Token}", token);
             return true;
         }
