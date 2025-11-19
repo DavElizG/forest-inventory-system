@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 /// Servicio para gestión de geolocalización GPS
 /// Proporciona auto-captura de coordenadas con fallback manual

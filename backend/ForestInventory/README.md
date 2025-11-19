@@ -133,6 +133,43 @@ https://localhost:7XXX/swagger
 - **TécnicoForestal**: Creación y edición de registros de árboles
 - **Consultor**: Solo lectura de datos
 
+## 🐳 Despliegue con Docker
+
+### Construir imagen Docker localmente
+```bash
+docker build -t forest-inventory-api:latest .
+```
+
+### Ejecutar contenedor
+```bash
+docker run -d -p 8080:8080 \
+  -e ASPNETCORE_ENVIRONMENT=Production \
+  -e ConnectionStrings__DefaultConnection="tu-cadena-conexion" \
+  --name forest-api \
+  forest-inventory-api:latest
+```
+
+### Desplegar en Railway
+
+1. **Conecta tu repositorio GitHub a Railway**
+2. **Railway detectará automáticamente el Dockerfile**
+3. **Configura las variables de entorno:**
+   ```
+   ASPNETCORE_ENVIRONMENT=Production
+   ConnectionStrings__DefaultConnection=<tu-cadena-conexion>
+   JwtSettings__SecretKey=<clave-segura>
+   JwtSettings__Issuer=ForestInventoryAPI
+   JwtSettings__Audience=ForestInventoryClient
+   JwtSettings__ExpirationInMinutes=60
+   ```
+4. **Railway asignará automáticamente un puerto y dominio público**
+
+### Verificar Health Check
+```bash
+curl https://tu-dominio.railway.app/health
+```
+
 ## 📄 Licencia
 
 [Por definir]
+

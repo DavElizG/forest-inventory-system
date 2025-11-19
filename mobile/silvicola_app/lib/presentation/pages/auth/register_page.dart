@@ -173,7 +173,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
                 // Rol
                 DropdownButtonFormField<String>(
-                  value: _selectedRol,
+                  initialValue: _selectedRol,
                   decoration: InputDecoration(
                     labelText: 'Rol *',
                     prefixIcon: const Icon(Icons.badge),
