@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../../core/config/router_config.dart' as routes;
+import '../../providers/auth_provider.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -11,6 +13,20 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Silvícola'),
         actions: [
+          // Mostrar nombre de usuario
+          Consumer<AuthProvider>(
+            builder: (context, authProvider, _) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Center(
+                  child: Text(
+                    authProvider.userName ?? '',
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () =>

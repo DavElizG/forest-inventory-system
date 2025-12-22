@@ -85,7 +85,7 @@ public static class InfrastructureServiceExtensions
                 OnMessageReceived = context =>
                 {
                     // Try to get token from cookie first, then from Authorization header
-                    var token = context.Request.Cookies["jwt-token"];
+                    var token = context.Request.Cookies["jwt_token"];
                     if (!string.IsNullOrEmpty(token))
                     {
                         context.Token = token;

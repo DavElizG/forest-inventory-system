@@ -12,6 +12,7 @@ class AuthProvider extends ChangeNotifier {
   String? _errorMessage;
   bool _isLoading = false;
   bool _rememberMe = false;
+  String? _pendingRoute; // Ruta a la que el usuario intentaba acceder
 
   // Getters
   bool get isAuthenticated => _isAuthenticated;
@@ -19,6 +20,7 @@ class AuthProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   bool get isLoading => _isLoading;
   bool get rememberMe => _rememberMe;
+  String? get pendingRoute => _pendingRoute;
 
   // Convenience getters for compatibility
   String? get token => null; // JWT is in HTTP-only cookies
@@ -29,6 +31,20 @@ class AuthProvider extends ChangeNotifier {
   set rememberMe(bool value) {
     _rememberMe = value;
     notifyListeners();
+  }
+
+  /// Guardar ruta pendiente para después del login
+  void setPendingRoute(String? route) {
+    _pendingRoute = route;
+    notifyListeners();
+  }
+
+  /// Obtener y limpiar ruta pendiente
+  String? consumePendingRoute() {
+    final route = _pendingRoute;
+    _pendingRoute = null;
+    notifyListeners();
+    return route;
   }
 
   // Clear error message

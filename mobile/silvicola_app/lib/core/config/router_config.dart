@@ -13,6 +13,7 @@ import '../../presentation/screens/sync/sync_screen.dart';
 import '../../presentation/pages/sync_preview_page.dart';
 import '../../presentation/screens/reportes/reportes_screen.dart';
 import '../../presentation/screens/settings/settings_screen.dart';
+import '../guards/auth_guard.dart';
 
 class AppRoutes {
   // Route names
@@ -30,20 +31,20 @@ class AppRoutes {
   static const String reportes = '/reportes';
   static const String settings = '/settings';
 
-  // Routes map
+  // Routes map with auth protection
   static Map<String, WidgetBuilder> get routes => {
         splash: (context) => const SplashScreen(),
         login: (context) => const LoginScreen(),
-        home: (context) => const HomeScreen(),
-        arbolList: (context) => const ArbolListScreen(),
-        arbolForm: (context) => const ArbolFormScreen(),
-        arbolDetail: (context) => const ArbolDetailScreen(),
-        parcelaList: (context) => const ParcelaListScreen(),
-        parcelaForm: (context) => const ParcelaFormScreen(),
-        especieList: (context) => const EspecieListScreen(),
-        sync: (context) => const SyncScreen(),
-        syncPreview: (context) => const SyncPreviewPage(),
-        reportes: (context) => const ReportesScreen(),
-        settings: (context) => const SettingsScreen(),
+        home: (context) => const AuthGuardedRoute(child: HomeScreen()),
+        arbolList: (context) => const AuthGuardedRoute(child: ArbolListScreen()),
+        arbolForm: (context) => const AuthGuardedRoute(child: ArbolFormScreen()),
+        arbolDetail: (context) => const AuthGuardedRoute(child: ArbolDetailScreen()),
+        parcelaList: (context) => const AuthGuardedRoute(child: ParcelaListScreen()),
+        parcelaForm: (context) => const AuthGuardedRoute(child: ParcelaFormScreen()),
+        especieList: (context) => const AuthGuardedRoute(child: EspecieListScreen()),
+        sync: (context) => const AuthGuardedRoute(child: SyncScreen()),
+        syncPreview: (context) => const AuthGuardedRoute(child: SyncPreviewPage()),
+        reportes: (context) => const AuthGuardedRoute(child: ReportesScreen()),
+        settings: (context) => const AuthGuardedRoute(child: SettingsScreen()),
       };
 }

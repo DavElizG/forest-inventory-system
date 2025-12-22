@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using ForestInventory.Application.Common;
 using ForestInventory.Application.Interfaces;
 using ForestInventory.Application.DTOs;
@@ -7,6 +8,7 @@ namespace ForestInventory.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class ParcelasController : ControllerBase
 {
     private readonly IParcelaService _parcelaService;

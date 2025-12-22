@@ -58,7 +58,11 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
 
     if (success) {
-      Navigator.of(context).pushReplacementNamed(routes.AppRoutes.home);
+      // Verificar si hay una ruta pendiente
+      final pendingRoute = authProvider.consumePendingRoute();
+      final targetRoute = pendingRoute ?? routes.AppRoutes.home;
+      
+      Navigator.of(context).pushReplacementNamed(targetRoute);
     } else {
       ErrorHelper.showError(
         context,

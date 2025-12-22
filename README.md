@@ -231,6 +231,28 @@ git push origin feature/mi-feature
 - [Esquema Base de Datos](docs/DATABASE_SCHEMA.md)
 - [Guía de Deployment](docs/DEPLOYMENT.md)
 - [Manual de Usuario](docs/USER_MANUAL.md)
+- [Implementación de Seguridad](docs/SECURITY_IMPLEMENTATION.md) ✨ **NUEVO**
+
+## 🔒 Seguridad
+
+### Autenticación y Autorización
+
+El sistema implementa un robusto sistema de seguridad:
+
+- **JWT con Cookies HTTP-Only**: Tokens seguros almacenados en cookies para prevenir XSS
+- **Protección de Rutas**: Todas las rutas protegidas con `[Authorize]` en backend
+- **Guards de Navegación**: Sistema de guards en Flutter para proteger pantallas
+- **Control de Roles**: 4 roles (Administrador, Supervisor, TécnicoForestal, Consultor)
+- **Auto-Login Seguro**: Verificación de sesión automática en la app móvil
+- **Almacenamiento Encriptado**: Credenciales guardadas de forma segura
+
+### Análisis de Seguridad
+
+✅ **Snyk Code Scan**: Sin vulnerabilidades detectadas  
+✅ **Backend (.NET)**: Código limpio y seguro  
+✅ **Mobile (Flutter)**: Sin issues de seguridad
+
+Ver [Implementación de Seguridad](docs/SECURITY_IMPLEMENTATION.md) para más detalles.
 
 ## 🚀 Deployment
 

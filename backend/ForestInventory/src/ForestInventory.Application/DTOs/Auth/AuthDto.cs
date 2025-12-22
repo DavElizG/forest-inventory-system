@@ -15,6 +15,16 @@ public class LoginResponseDto
     public DateTime ExpiresAt { get; set; }
 }
 
+/// <summary>
+/// Respuesta de login sin el token (solo se envía en cookie HTTP-Only)
+/// </summary>
+public class SecureLoginResponseDto
+{
+    public UsuarioDto Usuario { get; set; } = null!;
+    public DateTime ExpiresAt { get; set; }
+    public string Message { get; set; } = "Login exitoso. Token guardado en cookie segura.";
+}
+
 public class RefreshTokenDto
 {
     public string RefreshToken { get; set; } = string.Empty;

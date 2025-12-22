@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using ForestInventory.Application.Interfaces;
 using ForestInventory.Application.DTOs;
 
@@ -6,6 +7,7 @@ namespace ForestInventory.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "Administrador")]
 public class UsuariosController : ControllerBase
 {
     private readonly IUsuarioService _usuarioService;

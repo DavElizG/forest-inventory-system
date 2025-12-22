@@ -29,8 +29,16 @@ public class AuthController : ControllerBase
     /// <summary>
     /// Iniciar sesión
     /// </summary>
+    /// <remarks>
+    /// El token JWT se almacena automáticamente en una cookie HTTP-Only segura.
+    /// No es necesario manejar el token manualmente desde el cliente.
+    /// </remarks>
+    /// <response code="200">Login exitoso. Cookie establecida.</response>
+    /// <response code="401">Credenciales inválidas</response>
     [HttpPost("login")]
-    public async Task<ActionResult<LoginResponseDto>> Login(LoginDto loginDto)
+    [ProducesResponseType(typeof(SecureLoginResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<SecureLoginResponseDto>> Login(LoginDto loginDto)
     {
         try
         {
@@ -48,7 +56,11 @@ public class AuthController : ControllerBase
             Response.Cookies.Append("jwt_token", response.Token, cookieOptions);
             
             // No devolver el token en el response por seguridad
-            return Ok(new { usuario = response.Usuario, expiresAt = response.ExpiresAt });
+            return Ok(new SecureLoginResponseDto 
+            { 
+                Usuario = response.Usuario, 
+                ExpiresAt = response.ExpiresAt 
+            });
         }
         catch (UnauthorizedAccessException ex)
         {
@@ -65,8 +77,16 @@ public class AuthController : ControllerBase
     /// <summary>
     /// Registrar un nuevo usuario
     /// </summary>
+    /// <remarks>
+    /// El token JWT se almacena automáticamente en una cookie HTTP-Only segura.
+    /// Después del registro exitoso, el usuario queda autenticado automáticamente.
+    /// </remarks>
+    /// <response code="200">Registro exitoso. Cookie establecida.</response>
+    /// <response code="400">Datos inválidos o email ya registrado</response>
     [HttpPost("register")]
-    public async Task<ActionResult<LoginResponseDto>> Register(RegisterDto registerDto)
+    [ProducesResponseType(typeof(SecureLoginResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<SecureLoginResponseDto>> Register(RegisterDto registerDto)
     {
         try
         {
@@ -84,7 +104,12 @@ public class AuthController : ControllerBase
             Response.Cookies.Append("jwt_token", response.Token, cookieOptions);
             
             // No devolver el token en el response por seguridad
-            return Ok(new { usuario = response.Usuario, expiresAt = response.ExpiresAt });
+            return Ok(new SecureLoginResponseDto 
+            { 
+                Usuario = response.Usuario, 
+                ExpiresAt = response.ExpiresAt,
+                Message = "Registro exitoso. Token guardado en cookie segura."
+            });
         }
         catch (InvalidOperationException ex)
         {
@@ -101,8 +126,16 @@ public class AuthController : ControllerBase
     /// <summary>
     /// Cerrar sesión
     /// </summary>
+    /// <remarks>
+    /// Elimina la cookie JWT y cierra la sesión del usuario.
+    /// Requiere estar autenticado.
+    /// </remarks>
+    /// <response code="200">Sesión cerrada exitosamente</response>
+    /// <response code="401">No autenticado</response>
     [HttpPost("logout")]
     [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public IActionResult Logout()
     {
         try
@@ -123,8 +156,16 @@ public class AuthController : ControllerBase
     /// <summary>
     /// Verificar si el token es válido
     /// </summary>
+    /// <remarks>
+    /// Verifica que el token JWT en la cookie sea válido y devuelve la información del usuario.
+    /// Útil para verificar la sesión actual sin hacer login nuevamente.
+    /// </remarks>
+    /// <response code="200">Token válido. Devuelve información del usuario</response>
+    /// <response code="401">Token inválido o expirado</response>
     [HttpGet("verify")]
     [Authorize]
+    [ProducesResponseType(typeof(UsuarioDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<UsuarioDto>> VerifyToken()
     {
         try

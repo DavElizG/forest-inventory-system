@@ -15,16 +15,37 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _navigateToNext();
+    _initializeApp();
   }
 
-  Future<void> _navigateToNext() async {
+  Future<void> _initializeApp() async {
+    // Esperar mínimo 2 segundos para mostrar splash
     await Future.delayed(const Duration(seconds: 2));
 
     if (!mounted) return;
 
     final authProvider = context.read<AuthProvider>();
-    final route = authProvider.isAuthenticated
+    
+    // Intentar verificar token existente o auto-login
+    bool isAuthenticated = false;
+    
+    try {
+      // Primero intentar verificar token
+      isAuthenticated = await authProvider.verifyToken();
+      
+      // Si falla, intentar auto-login con credenciales guardadas
+      if (!isAuthenticated) {
+        isAuthenticated = await authProvider.tryAutoLogin();
+      }
+    } catch (e) {
+      // Ignorar errores y continuar al login
+      isAuthenticated = false;
+    }
+
+    if (!mounted) return;
+
+    // Navegar a la pantalla apropiada
+    final route = isAuthenticated
         ? routes.AppRoutes.home
         : routes.AppRoutes.login;
 
