@@ -21,7 +21,7 @@ class ParcelaProvider extends ChangeNotifier {
       final db = await _localDatabase.database;
       _parcelas = await db.query(
         'parcelas',
-        orderBy: 'fechaCreacion DESC',
+        orderBy: 'fecha_creacion DESC',
       );
     } catch (e) {
       _errorMessage = 'Error al cargar parcelas: ${e.toString()}';
@@ -48,7 +48,7 @@ class ParcelaProvider extends ChangeNotifier {
         'parcelas',
         where: 'codigo LIKE ? OR descripcion LIKE ?',
         whereArgs: ['%$query%', '%$query%'],
-        orderBy: 'fechaCreacion DESC',
+        orderBy: 'fecha_creacion DESC',
       );
     } catch (e) {
       _errorMessage = 'Error al buscar parcelas: ${e.toString()}';
@@ -65,7 +65,7 @@ class ParcelaProvider extends ChangeNotifier {
       
       if (parcelaData['id'] != null) {
         // Actualizar
-        parcelaData['fechaUltimaActualizacion'] = DateTime.now().toIso8601String();
+        parcelaData['fecha_actualizacion'] = DateTime.now().toIso8601String();
         await db.update(
           'parcelas',
           parcelaData,
@@ -75,7 +75,7 @@ class ParcelaProvider extends ChangeNotifier {
       } else {
         // Crear nueva
         parcelaData['id'] = DateTime.now().millisecondsSinceEpoch.toString();
-        parcelaData['fechaCreacion'] = DateTime.now().toIso8601String();
+        parcelaData['fecha_creacion'] = DateTime.now().toIso8601String();
         parcelaData['sincronizado'] = 0;
         parcelaData['activo'] = 1;
         await db.insert('parcelas', parcelaData);

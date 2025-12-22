@@ -15,7 +15,7 @@ class AuthService {
   Future<Map<String, dynamic>> login(String email, String password) async {
     try {
       final response = await _apiService.post(
-        '/Auth/login',  // Updated to match backend endpoint
+        '/api/Auth/login',
         data: {
           'email': email,
           'password': password,
@@ -33,11 +33,11 @@ class AuthService {
     required String email,
     required String password,
     required String nombreCompleto,
-    required String rol,
+    required int rol,
   }) async {
     try {
       final response = await _apiService.post(
-        '/Auth/register',
+        '/api/Auth/register',
         data: {
           'email': email,
           'password': password,
@@ -55,7 +55,7 @@ class AuthService {
   // Logout
   Future<void> logout() async {
     try {
-      await _apiService.post('/Auth/logout');
+      await _apiService.post('/api/Auth/logout');
     } catch (e) {
       throw Exception('Logout failed: ${e.toString()}');
     }
@@ -64,7 +64,7 @@ class AuthService {
   // Verify token and get user info
   Future<Map<String, dynamic>> verifyToken() async {
     try {
-      final response = await _apiService.get('/Auth/verify');
+      final response = await _apiService.get('/api/Auth/verify');
       return _apiService.parseResponse(response);
     } catch (e) {
       throw Exception('Token verification failed: ${e.toString()}');
@@ -75,7 +75,7 @@ class AuthService {
   Future<void> changePassword(String currentPassword, String newPassword) async {
     try {
       await _apiService.post(
-        '/Auth/change-password',
+        '/api/Auth/change-password',
         data: {
           'currentPassword': currentPassword,
           'newPassword': newPassword,

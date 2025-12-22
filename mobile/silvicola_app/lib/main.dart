@@ -27,15 +27,15 @@ void main() async {
     await dotenv.load(fileName: ".env");
   }
 
-  // Inicializar base de datos local solo en mobile/desktop
+  // Inicializar configuración PRIMERO (necesario para DatabaseHelper)
+  await Environment.init();
+
+  // Inicializar base de datos local solo en mobile/desktop DESPUÉS de Environment
   if (!kIsWeb) {
     await DatabaseHelper.instance.database;
     // Inicializar nueva base de datos con soporte offline
     await LocalDatabase.instance.database;
   }
-
-  // Inicializar configuración
-  await Environment.init();
 
   // Inicializar API service
   ApiService.instance.initialize();

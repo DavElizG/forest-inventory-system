@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 
 import '../../../core/config/router_config.dart' as routes;
 import '../../providers/auth_provider.dart';
+import '../../widgets/connectivity_banner.dart';
+import '../../widgets/sync_loading_overlay.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -34,51 +36,59 @@ class HomeScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: GridView.count(
-          crossAxisCount: 2,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-          children: [
-            _buildMenuCard(
-              context,
-              'Árboles',
-              Icons.park,
-              routes.AppRoutes.arbolList,
+      body: Stack(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: GridView.count(
+              crossAxisCount: 2,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              children: [
+                _buildMenuCard(
+                  context,
+                  'Árboles',
+                  Icons.park,
+                  routes.AppRoutes.arbolList,
+                ),
+                _buildMenuCard(
+                  context,
+                  'Parcelas',
+                  Icons.grid_on,
+                  routes.AppRoutes.parcelaList,
+                ),
+                _buildMenuCard(
+                  context,
+                  'Especies',
+                  Icons.eco,
+                  routes.AppRoutes.especieList,
+                ),
+                _buildMenuCard(
+                  context,
+                  'Sincronizar',
+                  Icons.sync,
+                  routes.AppRoutes.sync,
+                ),
+                _buildMenuCard(
+                  context,
+                  'Reportes',
+                  Icons.assessment,
+                  routes.AppRoutes.reportes,
+                ),
+                _buildMenuCard(
+                  context,
+                  'Configuración',
+                  Icons.settings,
+                  routes.AppRoutes.settings,
+                ),
+              ],
             ),
-            _buildMenuCard(
-              context,
-              'Parcelas',
-              Icons.grid_on,
-              routes.AppRoutes.parcelaList,
-            ),
-            _buildMenuCard(
-              context,
-              'Especies',
-              Icons.eco,
-              routes.AppRoutes.especieList,
-            ),
-            _buildMenuCard(
-              context,
-              'Sincronizar',
-              Icons.sync,
-              routes.AppRoutes.sync,
-            ),
-            _buildMenuCard(
-              context,
-              'Reportes',
-              Icons.assessment,
-              routes.AppRoutes.reportes,
-            ),
-            _buildMenuCard(
-              context,
-              'Configuración',
-              Icons.settings,
-              routes.AppRoutes.settings,
-            ),
-          ],
-        ),
+          ),
+          // Banner de conectividad
+          const ConnectivityBanner(),
+          // Overlay de sincronización
+          const SyncLoadingOverlay(),
+        ],
       ),
     );
   }

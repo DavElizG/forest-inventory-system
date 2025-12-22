@@ -23,9 +23,25 @@ class LocalDatabase {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _createDB,
+      onUpgrade: _upgradeDB,
     );
+  }
+
+  Future<void> _upgradeDB(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      // Agregar columna activo a especies
+      await db.execute('ALTER TABLE especies ADD COLUMN activo INTEGER DEFAULT 1');
+      // Agregar columna activo a arboles
+      await db.execute('ALTER TABLE arboles ADD COLUMN activo INTEGER DEFAULT 1');
+      // Agregar columna activo a parcelas si no existe
+      try {
+        await db.execute('ALTER TABLE parcelas ADD COLUMN activo INTEGER DEFAULT 1');
+      } catch (e) {
+        // La columna puede existir ya, ignorar error
+      }
+    }
   }
 
   Future<void> _createDB(Database db, int version) async {
@@ -43,6 +59,7 @@ class LocalDatabase {
         descripcion TEXT,
         fecha_establecimiento TEXT,
         usuario_id TEXT,
+        activo INTEGER DEFAULT 1,
         sincronizado INTEGER DEFAULT 0,
         fecha_creacion TEXT,
         fecha_actualizacion TEXT
@@ -57,6 +74,7 @@ class LocalDatabase {
         nombre_comun TEXT,
         familia TEXT,
         descripcion TEXT,
+        activo INTEGER DEFAULT 1,
         sincronizado INTEGER DEFAULT 0,
         fecha_creacion TEXT,
         fecha_actualizacion TEXT
@@ -79,6 +97,7 @@ class LocalDatabase {
         latitud REAL,
         longitud REAL,
         observaciones TEXT,
+        activo INTEGER DEFAULT 1,
         sincronizado INTEGER DEFAULT 0,
         fecha_medicion TEXT,
         fecha_creacion TEXT,

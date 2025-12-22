@@ -50,6 +50,7 @@ class ConnectivityService extends ChangeNotifier {
   }
 
   void setSyncStatus(bool syncing) {
+    if (_isSyncing == syncing) return; // Evitar notificaciones redundantes
     _isSyncing = syncing;
     notifyListeners();
   }

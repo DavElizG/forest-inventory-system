@@ -14,10 +14,15 @@ class SyncService extends ChangeNotifier {
   final Logger _logger = Logger();
   
   Timer? _autoSyncTimer;
+  Timer? _connectivityDebounceTimer;
+  DateTime? _lastSyncAttempt;
   bool _isSyncing = false;
   DateTime? _lastSyncTime;
   String? _lastSyncError;
   Map<String, int> _pendingCounts = {};
+  
+  // Cooldown de 30 segundos entre sincronizaciones automáticas
+  static const _syncCooldownDuration = Duration(seconds: 30);
   
   bool get isSyncing => _isSyncing;
   DateTime? get lastSyncTime => _lastSyncTime;
@@ -49,17 +54,34 @@ class SyncService extends ChangeNotifier {
   }
 
   void _onConnectivityChanged() {
-    if (_connectivityService.isOnline && !_isSyncing && totalPending > 0) {
-      _logger.i('📶 Conectividad restaurada, iniciando sincronización automática...');
-      syncAll();
-    }
+    // Cancelar el timer anterior si existe
+    _connectivityDebounceTimer?.cancel();
+    
+    // Esperar 2 segundos antes de sincronizar (debouncing)
+    _connectivityDebounceTimer = Timer(const Duration(seconds: 2), () {
+      // Verificar cooldown: no sincronizar si acabamos de hacerlo hace menos de 30 segundos
+      if (_lastSyncAttempt != null) {
+        final timeSinceLastSync = DateTime.now().difference(_lastSyncAttempt!);
+        if (timeSinceLastSync < _syncCooldownDuration) {
+          _logger.i('⏱️ Cooldown activo, esperando ${_syncCooldownDuration.inSeconds - timeSinceLastSync.inSeconds}s más');
+          return;
+        }
+      }
+      
+      if (_connectivityService.isOnline && !_isSyncing && totalPending > 0) {
+        _logger.i('📶 Conectividad restaurada, iniciando sincronización automática...');
+        syncAll();
+      }
+    });
   }
 
   /// Actualizar contadores de registros pendientes
-  Future<void> _updatePendingCounts() async {
+  Future<void> _updatePendingCounts({bool notify = true}) async {
     try {
       _pendingCounts = await _localDB.getContadoresSincronizacion();
-      notifyListeners();
+      if (notify) {
+        notifyListeners();
+      }
     } catch (e) {
       _logger.e('Error actualizando contadores: $e');
     }
@@ -85,10 +107,12 @@ class SyncService extends ChangeNotifier {
       );
     }
 
+    // Registrar intento de sincronización (para cooldown)
+    _lastSyncAttempt = DateTime.now();
     _isSyncing = true;
     _lastSyncError = null;
     _connectivityService.setSyncStatus(true);
-    notifyListeners();
+    // NO llamar notifyListeners() aquí - esperar al final
 
     int totalSynced = 0;
     int totalFailed = 0;
@@ -126,7 +150,8 @@ class SyncService extends ChangeNotifier {
 
       _logger.i('✅ Sincronización completada: $totalSynced exitosos, $totalFailed fallidos');
 
-      await _updatePendingCounts();
+      // Actualizar contadores sin notificar (lo haremos en el finally)
+      await _updatePendingCounts(notify: false);
 
       return SyncResult(
         success: totalFailed == 0,
@@ -147,6 +172,7 @@ class SyncService extends ChangeNotifier {
     } finally {
       _isSyncing = false;
       _connectivityService.setSyncStatus(false);
+      // Solo notificar UNA VEZ al final
       notifyListeners();
     }
   }
@@ -411,6 +437,7 @@ class SyncService extends ChangeNotifier {
   @override
   void dispose() {
     _autoSyncTimer?.cancel();
+    _connectivityDebounceTimer?.cancel();
     _connectivityService.removeListener(_onConnectivityChanged);
     super.dispose();
   }

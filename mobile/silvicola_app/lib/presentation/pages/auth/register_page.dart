@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../../core/utils/error_helper.dart';
+import '../../../domain/enums/rol_usuario.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -21,13 +22,6 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
-
-  final List<String> _roles = [
-    'Administrador',
-    'Supervisor',
-    'Técnico Forestal',
-    'Consultor',
-  ];
 
   @override
   void dispose() {
@@ -50,7 +44,7 @@ class _RegisterPageState extends State<RegisterPage> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
         nombreCompleto: _nombreController.text.trim(),
-        rol: _selectedRol,
+        rol: RolUsuario.getValueFromDisplayName(_selectedRol),
       );
 
       if (success && mounted) {
@@ -181,7 +175,7 @@ class _RegisterPageState extends State<RegisterPage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  items: _roles.map((rol) {
+                  items: RolUsuario.displayNames.map((rol) {
                     return DropdownMenuItem(
                       value: rol,
                       child: Text(rol),

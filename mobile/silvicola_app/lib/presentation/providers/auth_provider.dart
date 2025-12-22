@@ -25,7 +25,7 @@ class AuthProvider extends ChangeNotifier {
   // Convenience getters for compatibility
   String? get token => null; // JWT is in HTTP-only cookies
   String? get userName => _currentUser?.nombreCompleto;
-  String? get userRole => _currentUser?.rol;
+  int? get userRole => _currentUser?.rol;
 
   /// Setter for rememberMe
   set rememberMe(bool value) {
@@ -98,7 +98,7 @@ class AuthProvider extends ChangeNotifier {
     required String email,
     required String password,
     required String nombreCompleto,
-    required String rol,
+    required int rol,
   }) async {
     try {
       _isLoading = true;

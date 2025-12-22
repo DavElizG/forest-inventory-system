@@ -2,7 +2,7 @@ class Usuario {
   final String id;
   final String nombreCompleto;
   final String email;
-  final String rol;
+  final int rol;
   final String? organizacion;
   final bool activo;
   final DateTime? ultimoAcceso;

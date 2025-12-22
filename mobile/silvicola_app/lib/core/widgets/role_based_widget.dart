@@ -33,8 +33,8 @@ class RoleBasedWidget extends StatelessWidget {
     }
 
     try {
-      // Obtener rol del usuario actual
-      final userRole = RolUsuario.fromValue(int.parse(currentUser.rol));
+      // Obtener rol del usuario actual (ya es int)
+      final userRole = RolUsuario.fromValue(currentUser.rol);
 
       // Verificar si el usuario tiene permiso
       bool hasAccess = false;
@@ -159,7 +159,7 @@ class RoleHelper {
     if (currentUser == null) return false;
 
     try {
-      final userRole = RolUsuario.fromValue(int.parse(currentUser.rol));
+      final userRole = RolUsuario.fromValue(currentUser.rol);
       return RoleService.tienePermiso(userRole, permission);
     } catch (e) {
       return false;
@@ -174,7 +174,7 @@ class RoleHelper {
     if (currentUser == null) return false;
 
     try {
-      final userRole = RolUsuario.fromValue(int.parse(currentUser.rol));
+      final userRole = RolUsuario.fromValue(currentUser.rol);
       return RoleService.esAdministrador(userRole);
     } catch (e) {
       return false;
@@ -189,7 +189,7 @@ class RoleHelper {
     if (currentUser == null) return false;
 
     try {
-      final userRole = RolUsuario.fromValue(int.parse(currentUser.rol));
+      final userRole = RolUsuario.fromValue(currentUser.rol);
       return RoleService.puedeCrear(userRole);
     } catch (e) {
       return false;
@@ -204,7 +204,7 @@ class RoleHelper {
     if (currentUser == null) return false;
 
     try {
-      final userRole = RolUsuario.fromValue(int.parse(currentUser.rol));
+      final userRole = RolUsuario.fromValue(currentUser.rol);
       return RoleService.puedeEditar(userRole);
     } catch (e) {
       return false;
@@ -219,7 +219,7 @@ class RoleHelper {
     if (currentUser == null) return false;
 
     try {
-      final userRole = RolUsuario.fromValue(int.parse(currentUser.rol));
+      final userRole = RolUsuario.fromValue(currentUser.rol);
       return RoleService.puedeEliminar(userRole);
     } catch (e) {
       return false;
@@ -234,7 +234,7 @@ class RoleHelper {
     if (currentUser == null) return null;
 
     try {
-      return RolUsuario.fromValue(int.parse(currentUser.rol));
+      return RolUsuario.fromValue(currentUser.rol);
     } catch (e) {
       return null;
     }

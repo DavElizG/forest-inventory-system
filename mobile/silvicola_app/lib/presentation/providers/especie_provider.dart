@@ -24,7 +24,7 @@ class EspecieProvider extends ChangeNotifier {
         'especies',
         where: 'activo = ?',
         whereArgs: [1],
-        orderBy: 'nombreCientifico ASC',
+        orderBy: 'nombre_cientifico ASC',
       );
     } catch (e) {
       _errorMessage = 'Error al cargar especies: ${e.toString()}';
@@ -44,9 +44,9 @@ class EspecieProvider extends ChangeNotifier {
       final database = await _db.database;
       _especies = await database.query(
         'especies',
-        where: 'activo = ? AND (nombreComun LIKE ? OR nombreCientifico LIKE ?)',
+        where: 'activo = ? AND (nombre_comun LIKE ? OR nombre_cientifico LIKE ?)',
         whereArgs: [1, '%$query%', '%$query%'],
-        orderBy: 'nombreCientifico ASC',
+        orderBy: 'nombre_cientifico ASC',
       );
     } catch (e) {
       _errorMessage = 'Error al buscar especies: ${e.toString()}';
@@ -74,12 +74,13 @@ class EspecieProvider extends ChangeNotifier {
 
       if (existing.isEmpty) {
         // Crear nueva
-        especieData['fechaCreacion'] = DateTime.now().toIso8601String();
-        especieData['fechaModificacion'] = DateTime.now().toIso8601String();
+        especieData['fecha_creacion'] = DateTime.now().toIso8601String();
+        especieData['fecha_actualizacion'] = DateTime.now().toIso8601String();
+        especieData['activo'] = 1;
         await database.insert('especies', especieData);
       } else {
         // Actualizar existente
-        especieData['fechaModificacion'] = DateTime.now().toIso8601String();
+        especieData['fecha_actualizacion'] = DateTime.now().toIso8601String();
         especieData['sincronizado'] = 0;
         await database.update(
           'especies',
@@ -114,7 +115,7 @@ class EspecieProvider extends ChangeNotifier {
         {
           'activo': 0,
           'sincronizado': 0,
-          'fechaModificacion': DateTime.now().toIso8601String(),
+          'fecha_actualizacion': DateTime.now().toIso8601String(),
         },
         where: 'id = ?',
         whereArgs: [id],

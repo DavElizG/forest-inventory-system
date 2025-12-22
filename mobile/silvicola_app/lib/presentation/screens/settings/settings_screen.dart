@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/config/router_config.dart' as routes;
+import '../../../domain/enums/rol_usuario.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/theme_provider.dart';
 
@@ -37,7 +38,7 @@ class SettingsScreen extends StatelessWidget {
                       const SizedBox(height: 12),
                       _buildInfoRow('Nombre', user.nombreCompleto ?? ''),
                       _buildInfoRow('Email', user.email ?? ''),
-                      _buildInfoRow('Rol', user.rol ?? ''),
+                      _buildInfoRow('Rol', user.rol != null ? RolUsuario.getDisplayName(user.rol!) : 'N/A'),
                     ],
                   ),
                 ),

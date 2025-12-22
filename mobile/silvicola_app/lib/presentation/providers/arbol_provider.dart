@@ -25,9 +25,9 @@ class ArbolProvider extends ChangeNotifier {
         // Filtrar por parcela
         _arboles = await database.query(
           'arboles',
-          where: 'parcelaId = ? AND activo = ?',
+          where: 'parcela_id = ? AND activo = ?',
           whereArgs: [parcelaId, 1],
-          orderBy: 'fechaCreacion DESC',
+          orderBy: 'fecha_creacion DESC',
         );
       } else {
         // Obtener todos
@@ -35,7 +35,7 @@ class ArbolProvider extends ChangeNotifier {
           'arboles',
           where: 'activo = ?',
           whereArgs: [1],
-          orderBy: 'fechaCreacion DESC',
+          orderBy: 'fecha_creacion DESC',
         );
       }
     } catch (e) {
@@ -58,16 +58,16 @@ class ArbolProvider extends ChangeNotifier {
       if (parcelaId != null && parcelaId.isNotEmpty) {
         _arboles = await database.query(
           'arboles',
-          where: 'parcelaId = ? AND activo = ? AND nombreLocal LIKE ?',
-          whereArgs: [parcelaId, 1, '%$query%'],
-          orderBy: 'fechaCreacion DESC',
+          where: 'parcela_id = ? AND activo = ? AND (numero_arbol LIKE ? OR observaciones LIKE ?)',
+          whereArgs: [parcelaId, 1, '%$query%', '%$query%'],
+          orderBy: 'fecha_creacion DESC',
         );
       } else {
         _arboles = await database.query(
           'arboles',
-          where: 'activo = ? AND nombreLocal LIKE ?',
-          whereArgs: [1, '%$query%'],
-          orderBy: 'fechaCreacion DESC',
+          where: 'activo = ? AND (numero_arbol LIKE ? OR observaciones LIKE ?)',
+          whereArgs: [1, '%$query%', '%$query%'],
+          orderBy: 'fecha_creacion DESC',
         );
       }
     } catch (e) {
@@ -96,12 +96,13 @@ class ArbolProvider extends ChangeNotifier {
 
       if (existing.isEmpty) {
         // Crear nuevo
-        arbolData['fechaCreacion'] = DateTime.now().toIso8601String();
-        arbolData['fechaModificacion'] = DateTime.now().toIso8601String();
+        arbolData['fecha_creacion'] = DateTime.now().toIso8601String();
+        arbolData['fecha_actualizacion'] = DateTime.now().toIso8601String();
+        arbolData['activo'] = 1;
         await database.insert('arboles', arbolData);
       } else {
         // Actualizar existente
-        arbolData['fechaModificacion'] = DateTime.now().toIso8601String();
+        arbolData['fecha_actualizacion'] = DateTime.now().toIso8601String();
         arbolData['sincronizado'] = 0; // Marcar como no sincronizado
         await database.update(
           'arboles',
@@ -136,7 +137,7 @@ class ArbolProvider extends ChangeNotifier {
         {
           'activo': 0,
           'sincronizado': 0,
-          'fechaModificacion': DateTime.now().toIso8601String(),
+          'fecha_actualizacion': DateTime.now().toIso8601String(),
         },
         where: 'id = ?',
         whereArgs: [id],

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/config/router_config.dart' as routes;
+import '../../../core/services/permission_service.dart';
 import '../../providers/auth_provider.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -40,6 +41,17 @@ class _SplashScreenState extends State<SplashScreen> {
     } catch (e) {
       // Ignorar errores y continuar al login
       isAuthenticated = false;
+    }
+
+    if (!mounted) return;
+
+    // Solicitar permisos esenciales después de la autenticación
+    if (isAuthenticated) {
+      try {
+        await PermissionService.requestInitialPermissions(context);
+      } catch (e) {
+        // Continuar aunque falle la solicitud de permisos
+      }
     }
 
     if (!mounted) return;
