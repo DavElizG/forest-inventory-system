@@ -95,7 +95,21 @@ public static class InfrastructureServiceExtensions
             };
         });
 
-        services.AddAuthorization();
+        // Configurar políticas de autorización
+        services.AddAuthorization(options =>
+        {
+            // Política para administradores únicamente
+            options.AddPolicy("AdminOnly", policy => 
+                policy.RequireRole("Administrador"));
+            
+            // Política para staff (Administrador, Supervisor, TecnicoForestal)
+            options.AddPolicy("StaffAccess", policy => 
+                policy.RequireRole("Administrador", "Supervisor", "TecnicoForestal"));
+            
+            // Política para todos los usuarios autenticados
+            options.AddPolicy("AuthenticatedUser", policy => 
+                policy.RequireAuthenticatedUser());
+        });
 
         return services;
     }

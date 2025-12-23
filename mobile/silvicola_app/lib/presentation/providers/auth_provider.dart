@@ -68,15 +68,17 @@ class AuthProvider extends ChangeNotifier {
       _rememberMe = rememberMe;
       _errorMessage = null;
 
-      // Guardar credenciales si "recordar sesión" está activado
+      // SIEMPRE guardar datos del usuario (para acceso offline)
+      await _storage.saveUserData(_currentUser!.toJson());
+      
+      // Guardar credenciales solo si "recordar sesión" está activado
       await _storage.saveCredentials(
         email: email,
-        password: password,
+        password: rememberMe ? password : '',
         rememberMe: rememberMe,
       );
-
-      // Guardar datos del usuario
-      await _storage.saveUserData(_currentUser!.toJson());
+      
+      print('✅ Login exitoso - Usuario guardado localmente: ${_currentUser?.nombreCompleto}');
       
       notifyListeners();
       return true;
@@ -84,6 +86,8 @@ class AuthProvider extends ChangeNotifier {
       _isAuthenticated = false;
       _currentUser = null;
       _errorMessage = e.toString().replaceAll('Exception: ', '');
+      
+      print('❌ Error en login: $_errorMessage');
       
       notifyListeners();
       return false;
@@ -157,26 +161,43 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // Verify token and restore session
+  // Verify token and restore session (intenta online, fallback a offline)
   Future<bool> verifyToken() async {
     try {
       _isLoading = true;
       notifyListeners();
 
-      final response = await _authService.verifyToken();
-      final usuario = Usuario.fromJson(response);
+      try {
+        // Intentar verificar token contra el servidor
+        final response = await _authService.verifyToken();
+        final usuario = Usuario.fromJson(response);
 
-      _isAuthenticated = true;
-      _currentUser = usuario;
-      _rememberMe = await _storage.shouldRememberMe();
-      _errorMessage = null;
-      
-      notifyListeners();
-      return true;
+        _isAuthenticated = true;
+        _currentUser = usuario;
+        _rememberMe = await _storage.shouldRememberMe();
+        _errorMessage = null;
+        
+        // Actualizar datos locales con la respuesta del servidor
+        await _storage.saveUserData(_currentUser!.toJson());
+        
+        print('✅ Token verificado online');
+        notifyListeners();
+        return true;
+      } catch (e) {
+        // Si falla la verificación online, intentar cargar desde storage local
+        print('⚠️ Error al verificar token online, intentando offline: $e');
+        await loadUserFromStorage();
+        
+        if (_isAuthenticated && _currentUser != null) {
+          print('✅ Usando sesión offline con datos guardados');
+          return true;
+        }
+        
+        return false;
+      }
     } catch (e) {
       _isAuthenticated = false;
       _currentUser = null;
-      // Don't set error message for failed token verification
       
       notifyListeners();
       return false;
@@ -195,10 +216,21 @@ class AuthProvider extends ChangeNotifier {
       // Verificar si debe recordar sesión
       final shouldRemember = await _storage.shouldRememberMe();
       if (!shouldRemember) {
-        return false;
+        // Intentar cargar datos locales aunque no se haya marcado "recordar"
+        await loadUserFromStorage();
+        return _isAuthenticated;
       }
 
-      // Intentar obtener credenciales guardadas
+      // Primero intentar cargar datos del usuario desde storage local
+      await loadUserFromStorage();
+      
+      // Si hay usuario guardado, considerarlo autenticado
+      if (_currentUser != null) {
+        _isAuthenticated = true;
+        return true;
+      }
+
+      // Si no hay datos locales, intentar obtener credenciales guardadas
       final email = await _storage.getSavedEmail();
       final password = await _storage.getSavedPassword();
 
@@ -206,30 +238,37 @@ class AuthProvider extends ChangeNotifier {
         return false;
       }
 
-      // Intentar login con credenciales guardadas
+      // Intentar login con credenciales guardadas (solo si hay internet)
       return await login(email, password, rememberMe: true);
     } catch (e) {
-      _isAuthenticated = false;
-      _currentUser = null;
-      return false;
+      // Si falla el login pero hay datos locales, usar esos
+      await loadUserFromStorage();
+      return _isAuthenticated;
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  /// Cargar datos del usuario desde storage
+  /// Cargar datos del usuario desde storage (para modo offline)
   Future<void> loadUserFromStorage() async {
     try {
       final userData = await _storage.getUserData();
-      if (userData != null) {
+      if (userData != null && userData.isNotEmpty) {
         _currentUser = Usuario.fromJson(userData);
         _isAuthenticated = true;
         _rememberMe = await _storage.shouldRememberMe();
+        print('✅ Usuario cargado desde storage local: ${_currentUser?.nombreCompleto}');
         notifyListeners();
+      } else {
+        _isAuthenticated = false;
+        _currentUser = null;
+        print('❌ No hay datos de usuario en storage local');
       }
     } catch (e) {
-      // Ignorar errores al cargar datos
+      _isAuthenticated = false;
+      _currentUser = null;
+      print('⚠️ Error al cargar usuario desde storage: $e');
     }
   }
 

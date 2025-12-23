@@ -101,12 +101,13 @@ public class AuthService : IAuthService
                 throw new InvalidOperationException("El correo electrónico ya está registrado");
             }
 
-            // Crear nuevo usuario
-            // Convertir string Rol a enum RolUsuario
-            if (!Enum.TryParse<RolUsuario>(registerDto.Rol, ignoreCase: true, out var rolEnum))
+            // Validar y convertir el rol numérico a enum
+            if (!Enum.IsDefined(typeof(RolUsuario), registerDto.Rol))
             {
                 throw new ArgumentException($"Rol inválido: {registerDto.Rol}");
             }
+            
+            var rolEnum = (RolUsuario)registerDto.Rol;
 
             var usuario = new Usuario
             {
@@ -206,6 +207,11 @@ public class AuthService : IAuthService
             }
 
             var key = Encoding.ASCII.GetBytes(jwtSecret);
+            
+            // Convertir el rol numérico a nombre del enum
+            var rolEnum = (RolUsuario)usuario.Rol;
+            var rolName = Enum.GetName(typeof(RolUsuario), rolEnum) ?? rolEnum.ToString();
+            
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(new[]
@@ -213,7 +219,8 @@ public class AuthService : IAuthService
                     new Claim("UserId", usuario.Id.ToString()),
                     new Claim(ClaimTypes.Email, usuario.Email),
                     new Claim(ClaimTypes.Name, usuario.NombreCompleto),
-                    new Claim(ClaimTypes.Role, usuario.Rol.ToString()),
+                    new Claim(ClaimTypes.Role, rolName), // Usar nombre del enum: "Administrador"
+                    new Claim("RolId", usuario.Rol.ToString()), // También guardar el ID numérico
                     new Claim("Organizacion", usuario.Organizacion ?? "")
                 }),
                 Expires = DateTime.UtcNow.AddHours(24),

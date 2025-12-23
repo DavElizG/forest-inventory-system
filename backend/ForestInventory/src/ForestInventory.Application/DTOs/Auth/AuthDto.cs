@@ -55,5 +55,6 @@ public class RegisterDto
     public string NombreCompleto { get; set; } = string.Empty;
     
     [Required]
-    public string Rol { get; set; } = string.Empty;
+    [Range(1, 4, ErrorMessage = "El rol debe ser un valor entre 1 y 4")]
+    public int Rol { get; set; }
 }
