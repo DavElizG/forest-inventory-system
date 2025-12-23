@@ -271,10 +271,16 @@ class _ArbolFormPageState extends State<ArbolFormPage> {
                       ? const Text('Cargando parcelas...')
                       : const Text('Selecciona una parcela'),
                   items: parcelaProvider.parcelas.map((parcela) {
+                    final codigo = parcela['codigo'] ?? 'Sin código';
+                    final descripcion = parcela['descripcion'];
+                    final displayText = descripcion != null && descripcion.toString().isNotEmpty
+                        ? '$codigo - $descripcion'
+                        : codigo;
+                    
                     return DropdownMenuItem(
                       value: parcela['id'] as String,
                       child: Text(
-                        '${parcela['codigo']} - ${parcela['descripcion'] ?? ''}',
+                        displayText,
                         overflow: TextOverflow.ellipsis,
                       ),
                     );

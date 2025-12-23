@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'api_service.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
+import 'package:intl/intl.dart';
 
 /// Servicio para exportación de datos en diferentes formatos
 class ExportService {
@@ -14,6 +15,14 @@ class ExportService {
   ExportService._internal();
 
   final ApiService _apiService = ApiService.instance;
+
+  /// Generar nombre descriptivo de archivo con fecha y hora
+  String _generateFileName(String prefix, String extension) {
+    final now = DateTime.now();
+    final dateFormatter = DateFormat('yyyy-MM-dd_HHmm');
+    final timestamp = dateFormatter.format(now);
+    return '${prefix}_$timestamp.$extension';
+  }
 
   /// Obtener resumen de datos disponibles para exportación
   Future<Map<String, dynamic>> getExportSummary() async {
@@ -38,7 +47,7 @@ class ExportService {
         ),
       );
 
-      return await _saveFile(response.data, 'arboles_${DateTime.now().millisecondsSinceEpoch}.csv');
+      return await _saveFile(response.data, _generateFileName('inventario_arboles', 'csv'));
     } catch (e) {
       throw Exception('Error exportando a CSV: ${e.toString()}');
     }
@@ -59,7 +68,7 @@ class ExportService {
 
       return await _saveFile(
         response.data,
-        'arboles_${DateTime.now().millisecondsSinceEpoch}.xlsx',
+        _generateFileName('inventario_arboles', 'xlsx'),
       );
     } catch (e) {
       throw Exception('Error exportando a Excel: ${e.toString()}');
@@ -81,7 +90,7 @@ class ExportService {
 
       return await _saveFile(
         response.data,
-        'arboles_${DateTime.now().millisecondsSinceEpoch}.kml',
+        _generateFileName('inventario_arboles', 'kml'),
       );
     } catch (e) {
       throw Exception('Error exportando a KML: ${e.toString()}');
@@ -103,7 +112,7 @@ class ExportService {
 
       return await _saveFile(
         response.data,
-        'arboles_${DateTime.now().millisecondsSinceEpoch}.kmz',
+        _generateFileName('inventario_arboles', 'kmz'),
       );
     } catch (e) {
       throw Exception('Error exportando a KMZ: ${e.toString()}');
@@ -124,7 +133,7 @@ class ExportService {
 
       return await _saveFile(
         response.data,
-        'parcelas_${DateTime.now().millisecondsSinceEpoch}.kmz',
+        _generateFileName('inventario_parcelas', 'kmz'),
       );
     } catch (e) {
       throw Exception('Error exportando parcelas a KMZ: ${e.toString()}');
