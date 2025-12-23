@@ -40,21 +40,13 @@ void main() async {
   // Inicializar API service con soporte de cookies
   await ApiService.instance.initialize();
 
-  // Crear instancia de Dio para SyncService
-  final syncDio = Dio(BaseOptions(
-    baseUrl: Environment.apiBaseUrl,
-    connectTimeout: Duration(milliseconds: Environment.apiTimeout),
-    receiveTimeout: Duration(milliseconds: Environment.apiTimeout),
-    headers: {'Content-Type': 'application/json'},
-  ));
-  syncDio.interceptors.add(ApiErrorInterceptor());
-
   // Crear instancias de servicios para offline-first
   final connectivityService = ConnectivityService();
   final apiService = ApiService.instance; // Obtener singleton de ApiService
+  
+  // SyncService ahora usa el Dio de ApiService que ya tiene todos los interceptores
   final syncService = SyncService(
     connectivityService: connectivityService,
-    dio: syncDio,
     apiService: apiService,
   );
 

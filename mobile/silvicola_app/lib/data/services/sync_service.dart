@@ -11,9 +11,11 @@ import 'api_service.dart';
 class SyncService extends ChangeNotifier {
   final LocalDatabase _localDB = LocalDatabase.instance;
   final ConnectivityService _connectivityService;
-  final Dio _dio;
   final ApiService _apiService;
   final Logger _logger = Logger();
+  
+  // Usar el Dio del ApiService que ya tiene el interceptor de auth
+  Dio get _dio => _apiService.dio;
   
   Timer? _autoSyncTimer;
   Timer? _connectivityDebounceTimer;
@@ -34,10 +36,8 @@ class SyncService extends ChangeNotifier {
 
   SyncService({
     required ConnectivityService connectivityService,
-    required Dio dio,
     required ApiService apiService,
   })  : _connectivityService = connectivityService,
-        _dio = dio,
         _apiService = apiService {
     _init();
   }
