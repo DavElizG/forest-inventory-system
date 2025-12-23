@@ -211,8 +211,12 @@ class SyncService extends ChangeNotifier {
       int synced = 0;
       int failed = 0;
 
+      _logger.i('📋 Especies pendientes de sincronización: ${especies.length}');
+
       for (final especie in especies) {
         try {
+          _logger.d('Sincronizando especie: ${especie['nombre_cientifico']} (ID: ${especie['id']})');
+          
           final response = await _dio.post(
             '/api/Especies',
             data: {
@@ -229,8 +233,11 @@ class SyncService extends ChangeNotifier {
             final String serverId = serverData['id'];
             final String localId = especie['id'];
             
+            _logger.i('✅ Especie sincronizada - Local: $localId → Server: $serverId');
+            
             // Si los IDs son diferentes, actualizar referencias
             if (serverId != localId) {
+              _logger.d('Actualizando referencias de especie $localId a $serverId');
               await _localDB.actualizarReferenciaEspecieId(localId, serverId);
             }
             
@@ -279,6 +286,8 @@ class SyncService extends ChangeNotifier {
       int synced = 0;
       int failed = 0;
 
+      _logger.i('📋 Parcelas pendientes de sincronización: ${parcelas.length}');
+
       // Obtener el ID del usuario autenticado desde el token
       final userId = await _getUserIdFromToken();
       if (userId == null) {
@@ -293,6 +302,8 @@ class SyncService extends ChangeNotifier {
 
       for (final parcela in parcelas) {
         try {
+          _logger.d('Sincronizando parcela: ${parcela['codigo']} (ID: ${parcela['id']})');
+          
           // Preparar datos según CreateParcelaDto del backend
           final data = {
             'codigo': parcela['codigo'] ?? '',
@@ -322,8 +333,11 @@ class SyncService extends ChangeNotifier {
             final String serverId = serverData['id'];
             final String localId = parcela['id'];
             
+            _logger.i('✅ Parcela sincronizada - Local: $localId → Server: $serverId');
+            
             // Si los IDs son diferentes, actualizar referencias en árboles
             if (serverId != localId) {
+              _logger.d('Actualizando referencias de parcela $localId a $serverId');
               await _localDB.actualizarReferenciaParcelaId(localId, serverId);
             }
             
@@ -372,8 +386,12 @@ class SyncService extends ChangeNotifier {
       int synced = 0;
       int failed = 0;
 
+      _logger.i('📋 Árboles pendientes de sincronización: ${arboles.length}');
+
       for (final arbol in arboles) {
         try {
+          _logger.d('Sincronizando árbol ID: ${arbol['id']}, Especie: ${arbol['especie_id']}, Parcela: ${arbol['parcela_id']}');
+          
           final response = await _dio.post(
             '/api/Arboles',
             data: {

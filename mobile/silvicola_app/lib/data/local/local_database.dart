@@ -435,4 +435,19 @@ class LocalDatabase {
     await db.execute('DELETE FROM especies');
     await db.execute('DELETE FROM sync_logs');
   }
+
+  /// Resetear estado de sincronización para forzar resync
+  Future<void> resetearEstadoSincronizacion() async {
+    final db = await database;
+    await db.execute('UPDATE especies SET sincronizado = 0');
+    await db.execute('UPDATE parcelas SET sincronizado = 0');
+    await db.execute('UPDATE arboles SET sincronizado = 0');
+    await db.execute('UPDATE fotos SET sincronizado = 0');
+  }
+
+  /// Eliminar solo árboles no sincronizados
+  Future<void> eliminarArbolesNoSincronizados() async {
+    final db = await database;
+    await db.delete('arboles', where: 'sincronizado = 0');
+  }
 }
