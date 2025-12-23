@@ -148,25 +148,40 @@ class SyncService extends ChangeNotifier {
     try {
       _logger.i('🔄 Iniciando sincronización...');
 
-      // 1. Sincronizar Especies
+      // FASE 1: DESCARGAR datos del servidor (Pull)
+      _logger.i('⬇️ Descargando datos del servidor...');
+      
+      // 1.1 Descargar especies
+      await _downloadEspecies();
+      
+      // 1.2 Descargar parcelas
+      await _downloadParcelas();
+      
+      // 1.3 Descargar árboles
+      await _downloadArboles();
+
+      // FASE 2: SUBIR cambios locales al servidor (Push)
+      _logger.i('⬆️ Subiendo cambios locales...');
+
+      // 2.1 Sincronizar Especies
       final especiesResult = await _syncEspecies();
       totalSynced += especiesResult.synced;
       totalFailed += especiesResult.failed;
       if (!especiesResult.success) errors.add(especiesResult.message);
 
-      // 2. Sincronizar Parcelas
+      // 2.2 Sincronizar Parcelas
       final parcelasResult = await _syncParcelas();
       totalSynced += parcelasResult.synced;
       totalFailed += parcelasResult.failed;
       if (!parcelasResult.success) errors.add(parcelasResult.message);
 
-      // 3. Sincronizar Árboles
+      // 2.3 Sincronizar Árboles
       final arbolesResult = await _syncArboles();
       totalSynced += arbolesResult.synced;
       totalFailed += arbolesResult.failed;
       if (!arbolesResult.success) errors.add(arbolesResult.message);
 
-      // 4. Sincronizar Fotos
+      // 2.4 Sincronizar Fotos
       final fotosResult = await _syncFotos();
       totalSynced += fotosResult.synced;
       totalFailed += fotosResult.failed;
@@ -537,6 +552,95 @@ class SyncService extends ChangeNotifier {
     } catch (e) {
       _logger.e('Error extrayendo userId del token: $e');
       return null;
+    }
+  }
+
+  // === MÉTODOS DE DESCARGA (PULL) ===
+
+  /// Descargar especies del servidor
+  Future<void> _downloadEspecies() async {
+    try {
+      final response = await _dio.get('/api/Especies');
+      if (response.statusCode == 200) {
+        final List<dynamic> especies = response.data;
+        _logger.i('⬇️ Descargando ${especies.length} especies del servidor');
+        
+        for (final especie in especies) {
+          await _localDB.insertEspecie({
+            'id': especie['id'],
+            'nombre_cientifico': especie['nombreCientifico'],
+            'nombre_comun': especie['nombreComun'],
+            'familia': especie['familia'],
+            'descripcion': especie['descripcion'],
+            'sincronizado': 1,
+            'activo': 1,
+            'fecha_creacion': especie['fechaCreacion'] ?? DateTime.now().toIso8601String(),
+          });
+        }
+      }
+    } catch (e) {
+      _logger.w('Error descargando especies: $e');
+    }
+  }
+
+  /// Descargar parcelas del servidor
+  Future<void> _downloadParcelas() async {
+    try {
+      final response = await _dio.get('/api/Parcelas');
+      if (response.statusCode == 200) {
+        final List<dynamic> parcelas = response.data;
+        _logger.i('⬇️ Descargando ${parcelas.length} parcelas del servidor');
+        
+        for (final parcela in parcelas) {
+          await _localDB.insertParcela({
+            'id': parcela['id'],
+            'codigo': parcela['codigo'],
+            'nombre': parcela['nombre'],
+            'latitud': parcela['latitud'],
+            'longitud': parcela['longitud'],
+            'altitud': parcela['altitud'],
+            'area': parcela['area'] ?? 0.0,
+            'descripcion': parcela['descripcion'],
+            'ubicacion': parcela['ubicacion'],
+            'sincronizado': 1,
+            'activo': 1,
+            'fecha_creacion': parcela['fechaCreacion'] ?? DateTime.now().toIso8601String(),
+          });
+        }
+      }
+    } catch (e) {
+      _logger.w('Error descargando parcelas: $e');
+    }
+  }
+
+  /// Descargar árboles del servidor
+  Future<void> _downloadArboles() async {
+    try {
+      final response = await _dio.get('/api/Arboles');
+      if (response.statusCode == 200) {
+        final List<dynamic> arboles = response.data;
+        _logger.i('⬇️ Descargando ${arboles.length} árboles del servidor');
+        
+        for (final arbol in arboles) {
+          await _localDB.insertArbol({
+            'id': arbol['id'],
+            'numero_arbol': arbol['numeroArbol'] ?? 0,
+            'parcela_id': arbol['parcelaId'],
+            'especie_id': arbol['especieId'],
+            'latitud': arbol['latitud'],
+            'longitud': arbol['longitud'],
+            'altura': arbol['altura'] ?? 0.0,
+            'dap': arbol['diametro'] ?? 0.0,
+            'observaciones': arbol['descripcion'],
+            'sincronizado': 1,
+            'activo': 1,
+            'fecha_creacion': arbol['fechaCreacion'] ?? DateTime.now().toIso8601String(),
+            'fecha_actualizacion': DateTime.now().toIso8601String(),
+          });
+        }
+      }
+    } catch (e) {
+      _logger.w('Error descargando árboles: $e');
     }
   }
 
