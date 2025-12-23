@@ -1,8 +1,6 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
-import 'package:dio_cookie_manager/dio_cookie_manager.dart';
-import 'package:cookie_jar/cookie_jar.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../core/config/environment.dart';
 
 class ApiService {
@@ -18,7 +16,8 @@ class ApiService {
 
   late final Dio _dio;
   late final String baseUrl;
-  PersistCookieJar? _cookieJar;
+  final _storage = const FlutterSecureStorage();
+  static const _tokenKey = 'jwt_token';
   
   // Exponer Dio para casos especiales como descargas de archivos
   Dio get dio => _dio;
@@ -26,13 +25,6 @@ class ApiService {
   // Initialize API service with environment configuration
   Future<void> initialize() async {
     baseUrl = Environment.apiBaseUrl;
-    
-    // Setup persistent cookie storage
-    final appDocDir = await getApplicationDocumentsDirectory();
-    final cookiePath = '${appDocDir.path}/.cookies/';
-    _cookieJar = PersistCookieJar(
-      storage: FileStorage(cookiePath),
-    );
     
     _dio.options = BaseOptions(
       baseUrl: baseUrl,
@@ -43,8 +35,18 @@ class ApiService {
       },
     );
 
-    // Add cookie manager interceptor FIRST
-    _dio.interceptors.add(CookieManager(_cookieJar!));
+    // Add auth interceptor to include JWT token in requests
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          final token = await getToken();
+          if (token != null) {
+            options.headers['Authorization'] = 'Bearer $token';
+          }
+          return handler.next(options);
+        },
+      ),
+    );
 
     // Add interceptors for logging and error handling
     _dio.interceptors.add(
@@ -68,11 +70,19 @@ class ApiService {
     );
   }
   
-  // Clear cookies (useful for logout)
-  Future<void> clearCookies() async {
-    if (_cookieJar != null) {
-      await _cookieJar!.deleteAll();
-    }
+  // Save JWT token
+  Future<void> saveToken(String token) async {
+    await _storage.write(key: _tokenKey, value: token);
+  }
+  
+  // Get JWT token
+  Future<String?> getToken() async {
+    return await _storage.read(key: _tokenKey);
+  }
+  
+  // Clear token (useful for logout)
+  Future<void> clearToken() async {
+    await _storage.delete(key: _tokenKey);
   }
 
   // GET request
