@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../data/services/auth_service.dart';
+import '../../data/services/api_service.dart';
 import '../../data/models/auth_models.dart';
 import '../../core/services/secure_storage_service.dart';
 
@@ -146,17 +147,30 @@ class AuthProvider extends ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
-      await _authService.logout();
+      print('[AUTH_PROVIDER] 🚪 Cerrando sesión...');
       
-      // Limpiar almacenamiento seguro
+      // Intentar hacer logout en el servidor (aunque falle, continuar)
+      try {
+        await _authService.logout();
+        print('[AUTH_PROVIDER] ✅ Logout exitoso en el servidor');
+      } catch (e) {
+        print('[AUTH_PROVIDER] ⚠️ Error en logout del servidor (continuando): $e');
+      }
+      
+      // Limpiar almacenamiento seguro (contrasenas, email, etc.)
       await _storage.clearAll();
+      print('[AUTH_PROVIDER] 🗑️ Storage limpiado');
+      
     } catch (e) {
+      print('[AUTH_PROVIDER] ❌ Error en logout: $e');
       _errorMessage = e.toString().replaceAll('Exception: ', '');
     } finally {
+      // IMPORTANTE: Limpiar el estado SIEMPRE, incluso si hay errores
       _isAuthenticated = false;
       _currentUser = null;
       _rememberMe = false;
       _isLoading = false;
+      print('[AUTH_PROVIDER] ✅ Estado de autenticación limpiado');
       notifyListeners();
     }
   }
@@ -167,8 +181,18 @@ class AuthProvider extends ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
+      print('[AUTH_PROVIDER] 🔍 Verificando token...');
+      
+      // Primero verificar si hay un token guardado
+      final hasToken = await ApiService.instance.getToken();
+      if (hasToken == null) {
+        print('[AUTH_PROVIDER] ⚠️ No hay token guardado para verificar');
+        return false;
+      }
+
       try {
         // Intentar verificar token contra el servidor
+        print('[AUTH_PROVIDER] 🌐 Verificando token con el servidor...');
         final response = await _authService.verifyToken();
         final usuario = Usuario.fromJson(response);
 
@@ -179,6 +203,7 @@ class AuthProvider extends ChangeNotifier {
         
         // Actualizar datos locales con la respuesta del servidor
         await _storage.saveUserData(_currentUser!.toJson());
+        print('[AUTH_PROVIDER] ✅ Token verificado exitosamente');
         
         print('✅ Token verificado online');
         notifyListeners();
@@ -213,12 +238,23 @@ class AuthProvider extends ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
+      print('[AUTH_PROVIDER] 🔑 Intentando auto-login...');
+      
       // Verificar si debe recordar sesión
       final shouldRemember = await _storage.shouldRememberMe();
+      print('[AUTH_PROVIDER] ShouldRemember: $shouldRemember');
+      
       if (!shouldRemember) {
-        // Intentar cargar datos locales aunque no se haya marcado "recordar"
-        await loadUserFromStorage();
-        return _isAuthenticated;
+        // Si NO debe recordar, intentar cargar datos locales (modo offline)
+        // pero SOLO si no hubo un logout explícito
+        final hasUserData = await _storage.getUserData();
+        if (hasUserData != null) {
+          print('[AUTH_PROVIDER] 💾 Datos locales encontrados (modo offline)');
+          await loadUserFromStorage();
+          return _isAuthenticated;
+        }
+        print('[AUTH_PROVIDER] ❌ No hay datos guardados, requiere login');
+        return false;
       }
 
       // Primero intentar cargar datos del usuario desde storage local
@@ -226,6 +262,7 @@ class AuthProvider extends ChangeNotifier {
       
       // Si hay usuario guardado, considerarlo autenticado
       if (_currentUser != null) {
+        print('[AUTH_PROVIDER] ✅ Usuario cargado desde storage');
         _isAuthenticated = true;
         return true;
       }
@@ -235,12 +272,15 @@ class AuthProvider extends ChangeNotifier {
       final password = await _storage.getSavedPassword();
 
       if (email == null || password == null) {
+        print('[AUTH_PROVIDER] ❌ No hay credenciales guardadas');
         return false;
       }
 
+      print('[AUTH_PROVIDER] 🔄 Intentando login automático con credenciales guardadas');
       // Intentar login con credenciales guardadas (solo si hay internet)
       return await login(email, password, rememberMe: true);
     } catch (e) {
+      print('[AUTH_PROVIDER] ❌ Error en tryAutoLogin: $e');
       // Si falla el login pero hay datos locales, usar esos
       await loadUserFromStorage();
       return _isAuthenticated;

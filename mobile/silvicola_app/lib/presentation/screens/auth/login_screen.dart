@@ -21,21 +21,6 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _rememberMe = false;
 
   @override
-  void initState() {
-    super.initState();
-    _tryAutoLogin();
-  }
-
-  Future<void> _tryAutoLogin() async {
-    final authProvider = context.read<AuthProvider>();
-    final success = await authProvider.tryAutoLogin();
-    
-    if (success && mounted) {
-      Navigator.of(context).pushReplacementNamed(routes.AppRoutes.home);
-    }
-  }
-
-  @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();

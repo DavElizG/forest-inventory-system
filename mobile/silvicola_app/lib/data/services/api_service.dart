@@ -42,6 +42,9 @@ class ApiService {
           final token = await getToken();
           if (token != null) {
             options.headers['Authorization'] = 'Bearer $token';
+            print('[AUTH] 📤 Agregando header Authorization a ${options.path}');
+          } else {
+            print('[AUTH] ⚠️ No hay token para agregar a ${options.path}');
           }
           return handler.next(options);
         },
@@ -72,17 +75,27 @@ class ApiService {
   
   // Save JWT token
   Future<void> saveToken(String token) async {
+    print('[AUTH] 💾 Guardando token JWT: ${token.substring(0, 20)}...');
     await _storage.write(key: _tokenKey, value: token);
+    print('[AUTH] ✅ Token guardado exitosamente');
   }
   
   // Get JWT token
   Future<String?> getToken() async {
-    return await _storage.read(key: _tokenKey);
+    final token = await _storage.read(key: _tokenKey);
+    if (token != null) {
+      print('[AUTH] 🔑 Token encontrado: ${token.substring(0, 20)}...');
+    } else {
+      print('[AUTH] ⚠️ No se encontró token guardado');
+    }
+    return token;
   }
   
   // Clear token (useful for logout)
   Future<void> clearToken() async {
+    print('[AUTH] 🗑️ Limpiando token JWT...');
     await _storage.delete(key: _tokenKey);
+    print('[AUTH] ✅ Token eliminado');
   }
 
   // GET request

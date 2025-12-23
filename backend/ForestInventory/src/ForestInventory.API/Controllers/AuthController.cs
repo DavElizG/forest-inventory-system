@@ -120,14 +120,11 @@ public class AuthController : ControllerBase
     /// </summary>
     /// <remarks>
     /// Elimina la cookie JWT y cierra la sesión del usuario.
-    /// Requiere estar autenticado.
+    /// No requiere autenticación (puede ser llamado incluso si el token expiró).
     /// </remarks>
     /// <response code="200">Sesión cerrada exitosamente</response>
-    /// <response code="401">No autenticado</response>
     [HttpPost("logout")]
-    [Authorize]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public IActionResult Logout()
     {
         try
