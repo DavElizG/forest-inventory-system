@@ -92,7 +92,19 @@ class ApiErrorInterceptor extends Interceptor {
         return 'Solicitud inválida. Verifica los datos enviados.';
 
       case 401:
-        return 'No autorizado. Inicia sesión nuevamente.';
+        // Intentar extraer mensaje del backend si existe
+        if (data is Map) {
+          if (data['message'] != null) {
+            return data['message'].toString();
+          }
+          if (data['Details'] != null) {
+            return data['Details'].toString();
+          }
+          if (data['error'] != null) {
+            return data['error'].toString();
+          }
+        }
+        return 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.';
 
       case 403:
         return 'No tienes permisos para realizar esta acción.';
