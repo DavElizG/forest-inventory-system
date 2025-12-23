@@ -56,7 +56,11 @@ class AuthService {
   Future<void> logout() async {
     try {
       await _apiService.post('/api/Auth/logout');
+      // Clear cookies after logout
+      await _apiService.clearCookies();
     } catch (e) {
+      // Clear cookies even if logout request fails
+      await _apiService.clearCookies();
       throw Exception('Logout failed: ${e.toString()}');
     }
   }

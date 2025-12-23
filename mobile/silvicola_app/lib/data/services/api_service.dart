@@ -1,5 +1,8 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:dio_cookie_manager/dio_cookie_manager.dart';
+import 'package:cookie_jar/cookie_jar.dart';
+import 'package:path_provider/path_provider.dart';
 import '../../core/config/environment.dart';
 
 class ApiService {
@@ -15,13 +18,21 @@ class ApiService {
 
   late final Dio _dio;
   late final String baseUrl;
+  PersistCookieJar? _cookieJar;
   
   // Exponer Dio para casos especiales como descargas de archivos
   Dio get dio => _dio;
 
   // Initialize API service with environment configuration
-  void initialize() {
+  Future<void> initialize() async {
     baseUrl = Environment.apiBaseUrl;
+    
+    // Setup persistent cookie storage
+    final appDocDir = await getApplicationDocumentsDirectory();
+    final cookiePath = '${appDocDir.path}/.cookies/';
+    _cookieJar = PersistCookieJar(
+      storage: FileStorage(cookiePath),
+    );
     
     _dio.options = BaseOptions(
       baseUrl: baseUrl,
@@ -30,11 +41,10 @@ class ApiService {
       headers: {
         'Content-Type': 'application/json',
       },
-      // Enable cookies for JWT authentication
-      extra: {
-        'withCredentials': true,
-      },
     );
+
+    // Add cookie manager interceptor FIRST
+    _dio.interceptors.add(CookieManager(_cookieJar!));
 
     // Add interceptors for logging and error handling
     _dio.interceptors.add(
@@ -56,6 +66,13 @@ class ApiService {
         },
       ),
     );
+  }
+  
+  // Clear cookies (useful for logout)
+  Future<void> clearCookies() async {
+    if (_cookieJar != null) {
+      await _cookieJar!.deleteAll();
+    }
   }
 
   // GET request

@@ -37,8 +37,8 @@ void main() async {
     await LocalDatabase.instance.database;
   }
 
-  // Inicializar API service
-  ApiService.instance.initialize();
+  // Inicializar API service con soporte de cookies
+  await ApiService.instance.initialize();
 
   // Crear instancia de Dio para SyncService
   final syncDio = Dio(BaseOptions(
