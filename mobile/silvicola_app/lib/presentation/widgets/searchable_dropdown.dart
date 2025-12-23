@@ -26,10 +26,10 @@ class SearchableDropdown extends StatefulWidget {
   });
 
   @override
-  State<SearchableDropdown> createState() => _SearchableDropdownState();
+  State<SearchableDropdown> createState() => SearchableDropdownState();
 }
 
-class _SearchableDropdownState extends State<SearchableDropdown> {
+class SearchableDropdownState extends State<SearchableDropdown> {
   String? _errorText;
 
   @override
