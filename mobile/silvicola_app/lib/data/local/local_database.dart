@@ -223,6 +223,46 @@ class LocalDatabase {
     await db.update('especies', {'sincronizado': 1}, where: 'id = ?', whereArgs: [id]);
   }
 
+  /// Actualizar el ID de una especie y todas sus referencias en árboles
+  Future<void> actualizarReferenciaEspecieId(String oldId, String newId) async {
+    final db = await database;
+    await db.transaction((txn) async {
+      // 1. Actualizar el ID de la especie
+      await txn.execute('''
+        UPDATE especies 
+        SET id = ?, sincronizado = 1 
+        WHERE id = ?
+      ''', [newId, oldId]);
+      
+      // 2. Actualizar las referencias en árboles
+      await txn.execute('''
+        UPDATE arboles 
+        SET especie_id = ? 
+        WHERE especie_id = ?
+      ''', [newId, oldId]);
+    });
+  }
+
+  /// Actualizar el ID de una parcela y todas sus referencias en árboles
+  Future<void> actualizarReferenciaParcelaId(String oldId, String newId) async {
+    final db = await database;
+    await db.transaction((txn) async {
+      // 1. Actualizar el ID de la parcela
+      await txn.execute('''
+        UPDATE parcelas 
+        SET id = ?, sincronizado = 1 
+        WHERE id = ?
+      ''', [newId, oldId]);
+      
+      // 2. Actualizar las referencias en árboles
+      await txn.execute('''
+        UPDATE arboles 
+        SET parcela_id = ? 
+        WHERE parcela_id = ?
+      ''', [newId, oldId]);
+    });
+  }
+
   // === OPERACIONES CRUD PARA ÁRBOLES ===
 
   Future<String> insertArbol(Map<String, dynamic> arbol) async {

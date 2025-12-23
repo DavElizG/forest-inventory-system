@@ -1,5 +1,7 @@
 using ForestInventory.API.Extensions;
 using ForestInventory.API.Middlewares;
+using ForestInventory.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 using DotEnv.Core;
 using Microsoft.OpenApi.Models;
 
@@ -67,6 +69,22 @@ builder.Services.ConfigureAuthenticationServices(builder.Configuration);
 builder.Services.ConfigureCorsPolicy(builder.Configuration);
 
 var app = builder.Build();
+
+// Apply pending migrations automatically (for Railway deployment)
+using (var scope = app.Services.CreateScope())
+{
+    try
+    {
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        context.Database.Migrate();
+        Console.WriteLine("✅ Database migrations applied successfully");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"❌ Error applying migrations: {ex.Message}");
+        // Don't throw - let the app start anyway for debugging
+    }
+}
 
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())

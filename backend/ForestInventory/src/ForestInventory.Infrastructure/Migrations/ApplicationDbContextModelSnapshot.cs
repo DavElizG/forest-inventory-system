@@ -106,7 +106,7 @@ namespace ForestInventory.Infrastructure.Migrations
                     b.HasIndex("ParcelaId", "Codigo")
                         .IsUnique();
 
-                    b.ToTable("Arboles");
+                    b.ToTable("Arboles", (string)null);
                 });
 
             modelBuilder.Entity("ForestInventory.Domain.Entities.Especie", b =>
@@ -149,7 +149,7 @@ namespace ForestInventory.Infrastructure.Migrations
                     b.HasIndex("NombreCientifico")
                         .IsUnique();
 
-                    b.ToTable("Especies");
+                    b.ToTable("Especies", (string)null);
                 });
 
             modelBuilder.Entity("ForestInventory.Domain.Entities.Parcela", b =>
@@ -213,7 +213,7 @@ namespace ForestInventory.Infrastructure.Migrations
 
                     b.HasIndex("UsuarioCreadorId");
 
-                    b.ToTable("Parcelas");
+                    b.ToTable("Parcelas", (string)null);
                 });
 
             modelBuilder.Entity("ForestInventory.Domain.Entities.SyncLog", b =>
@@ -250,7 +250,7 @@ namespace ForestInventory.Infrastructure.Migrations
 
                     b.HasIndex("UsuarioId");
 
-                    b.ToTable("SyncLogs");
+                    b.ToTable("SyncLogs", (string)null);
                 });
 
             modelBuilder.Entity("ForestInventory.Domain.Entities.Usuario", b =>
@@ -300,7 +300,7 @@ namespace ForestInventory.Infrastructure.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
-                    b.ToTable("Usuarios");
+                    b.ToTable("Usuarios", (string)null);
                 });
 
             modelBuilder.Entity("ForestInventory.Domain.Entities.Arbol", b =>

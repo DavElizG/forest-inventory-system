@@ -224,10 +224,20 @@ class SyncService extends ChangeNotifier {
           );
 
           if (response.statusCode == 200 || response.statusCode == 201) {
-            await _localDB.marcarEspecieSincronizada(especie['id']);
+            // Obtener el ID del servidor y actualizar todos los registros relacionados
+            final serverData = response.data;
+            final String serverId = serverData['id'];
+            final String localId = especie['id'];
+            
+            // Si los IDs son diferentes, actualizar referencias
+            if (serverId != localId) {
+              await _localDB.actualizarReferenciaEspecieId(localId, serverId);
+            }
+            
+            await _localDB.marcarEspecieSincronizada(serverId);
             await _localDB.registrarSyncLog(
               tabla: 'especies',
-              registroId: especie['id'],
+              registroId: serverId,
               operacion: 'CREATE',
               exito: true,
             );
@@ -307,10 +317,20 @@ class SyncService extends ChangeNotifier {
           final response = await _dio.post('/api/Parcelas', data: data);
 
           if (response.statusCode == 200 || response.statusCode == 201) {
-            await _localDB.marcarParcelaSincronizada(parcela['id']);
+            // Obtener el ID del servidor y actualizar todos los registros relacionados
+            final serverData = response.data;
+            final String serverId = serverData['id'];
+            final String localId = parcela['id'];
+            
+            // Si los IDs son diferentes, actualizar referencias en árboles
+            if (serverId != localId) {
+              await _localDB.actualizarReferenciaParcelaId(localId, serverId);
+            }
+            
+            await _localDB.marcarParcelaSincronizada(serverId);
             await _localDB.registrarSyncLog(
               tabla: 'parcelas',
-              registroId: parcela['id'],
+              registroId: serverId,
               operacion: 'CREATE',
               exito: true,
             );
