@@ -64,7 +64,7 @@ class _ArbolListPageState extends State<ArbolListPage> {
     if (_searchQuery.isEmpty) return arboles;
     
     return arboles.where((arbol) {
-      final nombreLocal = arbol['nombreLocal']?.toString().toLowerCase() ?? '';
+      final nombreLocal = arbol['observaciones']?.toString().toLowerCase() ?? '';
       final especieNombre = arbol['especieNombre']?.toString().toLowerCase() ?? '';
       final parcelaCodigo = arbol['parcelaCodigo']?.toString().toLowerCase() ?? '';
       final query = _searchQuery.toLowerCase();
@@ -147,8 +147,8 @@ class _ArbolListPageState extends State<ArbolListPage> {
                           subtitle: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              if (arbol['nombreLocal'] != null && arbol['nombreLocal'].toString().isNotEmpty)
-                                Text('Nombre local: ${arbol['nombreLocal']}'),
+                              if (arbol['observaciones'] != null && arbol['observaciones'].toString().isNotEmpty)
+                                Text('Observaciones: ${arbol['observaciones']}'),
                               if (arbol['parcelaCodigo'] != null)
                                 Text(
                                   'Parcela: ${arbol['parcelaCodigo']}',

@@ -175,9 +175,9 @@ class _ParcelaFormPageState extends State<ParcelaFormPage> {
         'longitud': double.parse(_longitudController.text),
         'activo': 1,
         'sincronizado': 0,
-        'fechaCreacion': widget.parcela?['fechaCreacion'] ??
+        'fecha_creacion': widget.parcela?['fecha_creacion'] ??
             DateTime.now().toIso8601String(),
-        'fechaModificacion': DateTime.now().toIso8601String(),
+        'fecha_actualizacion': DateTime.now().toIso8601String(),
       };
 
       final parcelaProvider = context.read<ParcelaProvider>();

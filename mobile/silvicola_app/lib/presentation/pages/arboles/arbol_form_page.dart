@@ -7,6 +7,7 @@ import '../../../core/services/location_service.dart';
 import '../../providers/arbol_provider.dart';
 import '../../providers/parcela_provider.dart';
 import '../../providers/especie_provider.dart';
+import '../../widgets/searchable_dropdown.dart';
 import '../../../core/utils/error_helper.dart';
 
 class ArbolFormPage extends StatefulWidget {
@@ -25,6 +26,8 @@ class ArbolFormPage extends StatefulWidget {
 
 class _ArbolFormPageState extends State<ArbolFormPage> {
   final _formKey = GlobalKey<FormState>();
+  final _parcelaDropdownKey = GlobalKey<_SearchableDropdownState>();
+  final _especieDropdownKey = GlobalKey<_SearchableDropdownState>();
   final _alturaController = TextEditingController();
   final _diametroController = TextEditingController();
   final _nombreLocalController = TextEditingController();
@@ -52,11 +55,11 @@ class _ArbolFormPageState extends State<ArbolFormPage> {
 
     // Si es edición, cargar datos
     if (widget.arbol != null) {
-      _selectedParcelaId = widget.arbol!['parcelaId'];
-      _selectedEspecieId = widget.arbol!['especieId'];
+      _selectedParcelaId = widget.arbol!['parcela_id'];
+      _selectedEspecieId = widget.arbol!['especie_id'];
       _alturaController.text = widget.arbol!['altura']?.toString() ?? '';
-      _diametroController.text = widget.arbol!['diametro']?.toString() ?? '';
-      _nombreLocalController.text = widget.arbol!['nombreLocal'] ?? '';
+      _diametroController.text = widget.arbol!['dap']?.toString() ?? '';
+      _nombreLocalController.text = widget.arbol!['observaciones'] ?? '';
       _latitudController.text = widget.arbol!['latitud']?.toString() ?? '';
       _longitudController.text = widget.arbol!['longitud']?.toString() ?? '';
     } else if (widget.preSelectedParcelaId != null) {
@@ -167,7 +170,14 @@ class _ArbolFormPageState extends State<ArbolFormPage> {
   }
 
   Future<void> _saveArbol() async {
-    if (!_formKey.currentState!.validate()) return;
+    // Validar formulario y dropdowns
+    final formValid = _formKey.currentState!.validate();
+    final parcelaValid = _parcelaDropdownKey.currentState?.validate() == null;
+    final especieValid = _especieDropdownKey.currentState?.validate() == null;
+    
+    if (!formValid || !parcelaValid || !especieValid) {
+      return;
+    }
 
     if (_selectedParcelaId == null) {
       ErrorHelper.showError(context, 'Debes seleccionar una parcela');
@@ -192,18 +202,19 @@ class _ArbolFormPageState extends State<ArbolFormPage> {
     try {
       final arbolData = {
         'id': widget.arbol?['id'] ?? const Uuid().v4(),
-        'parcelaId': _selectedParcelaId!,
-        'especieId': _selectedEspecieId!,
+        'numero_arbol': widget.arbol?['numero_arbol'] ?? 0,
+        'parcela_id': _selectedParcelaId!,
+        'especie_id': _selectedEspecieId!,
         'altura': double.tryParse(_alturaController.text) ?? 0.0,
-        'diametro': double.tryParse(_diametroController.text) ?? 0.0,
-        'nombreLocal': _nombreLocalController.text.trim(),
+        'dap': double.tryParse(_diametroController.text) ?? 0.0,
         'latitud': double.parse(_latitudController.text),
         'longitud': double.parse(_longitudController.text),
+        'observaciones': _nombreLocalController.text.trim(),
         'activo': 1,
         'sincronizado': 0,
-        'fechaCreacion': widget.arbol?['fechaCreacion'] ??
+        'fecha_creacion': widget.arbol?['fecha_creacion'] ??
             DateTime.now().toIso8601String(),
-        'fechaModificacion': DateTime.now().toIso8601String(),
+        'fecha_actualizacion': DateTime.now().toIso8601String(),
       };
 
       final arbolProvider = context.read<ArbolProvider>();
@@ -257,91 +268,69 @@ class _ArbolFormPageState extends State<ArbolFormPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Selector de Parcela
-                DropdownButtonFormField<String>(
-                  initialValue: _selectedParcelaId,
-                  decoration: InputDecoration(
-                    labelText: 'Parcela *',
-                    prefixIcon: const Icon(Icons.landscape),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  hint: parcelaProvider.isLoading
-                      ? const Text('Cargando parcelas...')
-                      : const Text('Selecciona una parcela'),
-                  items: parcelaProvider.parcelas.map((parcela) {
+                // Selector de Parcela con búsqueda
+                SearchableDropdown(
+                  key: _parcelaDropdownKey,
+                  label: 'Parcela *',
+                  hint: 'Selecciona una parcela',
+                  prefixIcon: Icons.landscape,
+                  selectedValue: _selectedParcelaId,
+                  items: parcelaProvider.parcelas,
+                  displayText: (parcela) {
                     final codigo = parcela['codigo'] ?? 'Sin código';
                     final descripcion = parcela['descripcion'];
-                    final displayText = descripcion != null && descripcion.toString().isNotEmpty
+                    return descripcion != null && descripcion.toString().isNotEmpty
                         ? '$codigo - $descripcion'
                         : codigo;
-                    
-                    return DropdownMenuItem(
-                      value: parcela['id'] as String,
-                      child: Text(
-                        displayText,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    );
-                  }).toList(),
-                  onChanged: parcelaProvider.isLoading
-                      ? null
-                      : (value) {
-                          setState(() => _selectedParcelaId = value);
-                        },
+                  },
+                  onChanged: (value) {
+                    setState(() => _selectedParcelaId = value);
+                  },
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Selecciona una parcela';
                     }
                     return null;
                   },
+                  isLoading: parcelaProvider.isLoading,
                 ),
                 const SizedBox(height: 16),
 
-                // Selector de Especie
-                DropdownButtonFormField<String>(
-                  initialValue: _selectedEspecieId,
-                  decoration: InputDecoration(
-                    labelText: 'Especie *',
-                    prefixIcon: const Icon(Icons.park),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  hint: especieProvider.isLoading
-                      ? const Text('Cargando especies...')
-                      : const Text('Selecciona una especie'),
-                  items: especieProvider.especies.map((especie) {
-                    return DropdownMenuItem(
-                      value: especie['id'] as String,
-                      child: Text(
-                        '${especie['nombreComun']} (${especie['nombreCientifico']})',
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    );
-                  }).toList(),
-                  onChanged: especieProvider.isLoading
-                      ? null
-                      : (value) {
-                          setState(() => _selectedEspecieId = value);
-                        },
+                // Selector de Especie con búsqueda
+                SearchableDropdown(
+                  key: _especieDropdownKey,
+                  label: 'Especie *',
+                  hint: 'Selecciona una especie',
+                  prefixIcon: Icons.park,
+                  selectedValue: _selectedEspecieId,
+                  items: especieProvider.especies,
+                  displayText: (especie) {
+                    final nombreComun = especie['nombre_comun'] ?? especie['nombreComun'] ?? 'Sin nombre';
+                    final nombreCientifico = especie['nombre_cientifico'] ?? especie['nombreCientifico'] ?? '';
+                    return nombreCientifico.isNotEmpty
+                        ? '$nombreComun ($nombreCientifico)'
+                        : nombreComun;
+                  },
+                  onChanged: (value) {
+                    setState(() => _selectedEspecieId = value);
+                  },
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Selecciona una especie';
                     }
                     return null;
                   },
+                  isLoading: especieProvider.isLoading,
                 ),
                 const SizedBox(height: 16),
 
-                // Nombre local
+                // Observaciones (antes "Nombre local")
                 TextFormField(
                   controller: _nombreLocalController,
                   decoration: InputDecoration(
-                    labelText: 'Nombre Local',
-                    hintText: 'Nombre común en la región',
-                    prefixIcon: const Icon(Icons.label),
+                    labelText: 'Observaciones',
+                    hintText: 'Notas adicionales sobre el árbol',
+                    prefixIcon: const Icon(Icons.note),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
