@@ -20,12 +20,23 @@ public class EspecieService : IEspecieService
         _logger = logger;
     }
 
-    public async Task<IEnumerable<EspecieDto>> GetAllEspeciesAsync()
+    public async Task<(IEnumerable<EspecieDto>, int totalCount)> GetAllEspeciesAsync(int page = 1, int pageSize = 20)
     {
         try
         {
-            var especies = await _unitOfWork.EspecieRepository.GetAllAsync();
-            return _mapper.Map<IEnumerable<EspecieDto>>(especies);
+            _logger.LogInformation("Getting especies - Page: {Page}, PageSize: {PageSize}", page, pageSize);
+            
+            var allEspecies = await _unitOfWork.EspecieRepository.GetAllAsync();
+            var totalCount = allEspecies.Count();
+            
+            var paginatedEspecies = allEspecies
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+            
+            var dtos = _mapper.Map<IEnumerable<EspecieDto>>(paginatedEspecies);
+            
+            return (dtos, totalCount);
         }
         catch (Exception ex)
         {

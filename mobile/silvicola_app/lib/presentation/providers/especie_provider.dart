@@ -6,16 +6,26 @@ class EspecieProvider extends ChangeNotifier {
   
   List<Map<String, dynamic>> _especies = [];
   bool _isLoading = false;
+  bool _isLoadingMore = false;
   String? _errorMessage;
+  
+  // Paginación
+  int _currentPage = 1;
+  final int _pageSize = 20;
+  bool _hasMore = true;
 
   List<Map<String, dynamic>> get especies => _especies;
   bool get isLoading => _isLoading;
+  bool get isLoadingMore => _isLoadingMore;
+  bool get hasMore => _hasMore;
   String? get errorMessage => _errorMessage;
 
-  /// Obtener todas las especies
+  /// Obtener especies de la primera página
   Future<void> fetchEspecies() async {
     _isLoading = true;
     _errorMessage = null;
+    _currentPage = 1;
+    _hasMore = true;
     notifyListeners();
 
     try {
@@ -25,11 +35,47 @@ class EspecieProvider extends ChangeNotifier {
         where: 'activo = ?',
         whereArgs: [1],
         orderBy: 'nombre_cientifico ASC',
+        limit: _pageSize,
       );
+      
+      _hasMore = _especies.length == _pageSize;
     } catch (e) {
       _errorMessage = 'Error al cargar especies: ${e.toString()}';
     } finally {
       _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Cargar más especies (siguiente página)
+  Future<void> fetchMoreEspecies() async {
+    if (_isLoadingMore || !_hasMore || _isLoading) return;
+
+    _isLoadingMore = true;
+    notifyListeners();
+
+    try {
+      final database = await _db.database;
+      final newEspecies = await database.query(
+        'especies',
+        where: 'activo = ?',
+        whereArgs: [1],
+        orderBy: 'nombre_cientifico ASC',
+        limit: _pageSize,
+        offset: _currentPage * _pageSize,
+      );
+
+      if (newEspecies.isNotEmpty) {
+        _especies.addAll(newEspecies);
+        _currentPage++;
+        _hasMore = newEspecies.length == _pageSize;
+      } else {
+        _hasMore = false;
+      }
+    } catch (e) {
+      _errorMessage = 'Error al cargar más especies: ${e.toString()}';
+    } finally {
+      _isLoadingMore = false;
       notifyListeners();
     }
   }

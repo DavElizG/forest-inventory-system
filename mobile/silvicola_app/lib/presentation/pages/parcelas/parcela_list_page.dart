@@ -13,15 +13,38 @@ class ParcelaListPage extends StatefulWidget {
 }
 
 class _ParcelaListPageState extends State<ParcelaListPage> {
+  final ScrollController _scrollController = ScrollController();
   String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     // Cargar parcelas al inicio
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ParcelaProvider>().fetchParcelas();
     });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_searchQuery.isNotEmpty) return; // No cargar más si hay búsqueda activa
+
+    final parcelaProvider = context.read<ParcelaProvider>();
+    if (parcelaProvider.isLoadingMore || !parcelaProvider.hasMore) return;
+
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.position.pixels;
+    const delta = 200.0; // Cargar cuando falten 200px para el final
+
+    if (currentScroll >= maxScroll - delta) {
+      parcelaProvider.fetchMoreParcelas();
+    }
   }
 
   Future<void> _eliminarParcela(String id) async {
@@ -124,9 +147,31 @@ class _ParcelaListPageState extends State<ParcelaListPage> {
               : RefreshIndicator(
                   onRefresh: () => context.read<ParcelaProvider>().fetchParcelas(),
                   child: ListView.builder(
+                    controller: _scrollController,
                     padding: const EdgeInsets.all(16),
-                    itemCount: parcelasFiltradas.length,
+                    itemCount: parcelasFiltradas.length + 1,
                     itemBuilder: (context, index) {
+                      // Indicador de carga al final
+                      if (index == parcelasFiltradas.length) {
+                        if (parcelaProvider.isLoadingMore) {
+                          return const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 16),
+                            child: Center(child: CircularProgressIndicator()),
+                          );
+                        } else if (!parcelaProvider.hasMore && parcelasFiltradas.length > 10) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            child: Center(
+                              child: Text(
+                                'No hay más parcelas',
+                                style: TextStyle(color: Colors.grey[600]),
+                              ),
+                            ),
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      }
+
                       final parcela = parcelasFiltradas[index];
                       final sincronizado = parcela['sincronizado'] == 1;
                       

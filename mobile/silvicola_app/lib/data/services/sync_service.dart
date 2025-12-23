@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
@@ -258,22 +259,42 @@ class SyncService extends ChangeNotifier {
       int synced = 0;
       int failed = 0;
 
+      // Obtener el ID del usuario autenticado desde el token
+      final userId = await _getUserIdFromToken();
+      if (userId == null) {
+        _logger.w('No se pudo obtener userId, no se pueden sincronizar parcelas');
+        return SyncResult(
+          success: false,
+          message: 'Usuario no autenticado',
+          synced: 0,
+          failed: parcelas.length,
+        );
+      }
+
       for (final parcela in parcelas) {
         try {
-          final response = await _dio.post(
-            '/api/Parcelas',
-            data: {
-              'codigo': parcela['codigo'],
-              'nombre': parcela['nombre'],
-              'ubicacion': parcela['ubicacion'],
-              'area': parcela['area'],
-              'latitud': parcela['latitud'],
-              'longitud': parcela['longitud'],
-              'altitud': parcela['altitud'],
-              'descripcion': parcela['descripcion'],
-              'fechaEstablecimiento': parcela['fecha_establecimiento'],
-            },
-          );
+          // Preparar datos según CreateParcelaDto del backend
+          final data = {
+            'codigo': parcela['codigo'] ?? '',
+            'nombre': parcela['codigo'] ?? 'Parcela ${parcela['id']}', // Usar código como nombre si no hay nombre
+            'latitud': parcela['latitud'] ?? 0.0,
+            'longitud': parcela['longitud'] ?? 0.0,
+            'area': parcela['area'] ?? 0.0,
+            'usuarioCreadorId': userId,
+          };
+
+          // Agregar campos opcionales solo si existen
+          if (parcela['altitud'] != null) {
+            data['altitud'] = parcela['altitud'];
+          }
+          if (parcela['descripcion'] != null && parcela['descripcion'].toString().isNotEmpty) {
+            data['descripcion'] = parcela['descripcion'];
+          }
+          if (parcela['ubicacion'] != null && parcela['ubicacion'].toString().isNotEmpty) {
+            data['ubicacion'] = parcela['ubicacion'];
+          }
+
+          final response = await _dio.post('/api/Parcelas', data: data);
 
           if (response.statusCode == 200 || response.statusCode == 201) {
             await _localDB.marcarParcelaSincronizada(parcela['id']);
@@ -447,6 +468,31 @@ class SyncService extends ChangeNotifier {
         synced: 0,
         failed: 0,
       );
+    }
+  }
+
+  /// Extrae el userId del token JWT
+  Future<String?> _getUserIdFromToken() async {
+    try {
+      final token = await _apiService.getToken();
+      if (token == null) return null;
+
+      // Decodificar JWT (formato: header.payload.signature)
+      final parts = token.split('.');
+      if (parts.length != 3) return null;
+
+      // Decodificar el payload (segunda parte)
+      final payload = parts[1];
+      // Normalizar base64 padding
+      var normalized = base64Url.normalize(payload);
+      final decoded = utf8.decode(base64Url.decode(normalized));
+      final payloadMap = json.decode(decoded) as Map<String, dynamic>;
+
+      // El backend usa "UserId" (con mayúscula) en el claim
+      return payloadMap['UserId'] as String?;
+    } catch (e) {
+      _logger.e('Error extrayendo userId del token: $e');
+      return null;
     }
   }
 

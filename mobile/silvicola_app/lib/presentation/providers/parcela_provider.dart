@@ -5,16 +5,26 @@ class ParcelaProvider extends ChangeNotifier {
   final LocalDatabase _localDatabase = LocalDatabase.instance;
   List<Map<String, dynamic>> _parcelas = [];
   bool _isLoading = false;
+  bool _isLoadingMore = false;
   String? _errorMessage;
+  
+  // Paginación
+  int _currentPage = 1;
+  final int _pageSize = 20;
+  bool _hasMore = true;
 
   List<Map<String, dynamic>> get parcelas => _parcelas;
   bool get isLoading => _isLoading;
+  bool get isLoadingMore => _isLoadingMore;
+  bool get hasMore => _hasMore;
   String? get errorMessage => _errorMessage;
 
-  /// Obtiene todas las parcelas desde la base de datos local
+  /// Obtiene las parcelas de la primera página
   Future<void> fetchParcelas() async {
     _isLoading = true;
     _errorMessage = null;
+    _currentPage = 1;
+    _hasMore = true;
     notifyListeners();
 
     try {
@@ -22,11 +32,45 @@ class ParcelaProvider extends ChangeNotifier {
       _parcelas = await db.query(
         'parcelas',
         orderBy: 'fecha_creacion DESC',
+        limit: _pageSize,
       );
+      
+      _hasMore = _parcelas.length == _pageSize;
     } catch (e) {
       _errorMessage = 'Error al cargar parcelas: ${e.toString()}';
     } finally {
       _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Carga más parcelas (siguiente página)
+  Future<void> fetchMoreParcelas() async {
+    if (_isLoadingMore || !_hasMore || _isLoading) return;
+
+    _isLoadingMore = true;
+    notifyListeners();
+
+    try {
+      final db = await _localDatabase.database;
+      final newParcelas = await db.query(
+        'parcelas',
+        orderBy: 'fecha_creacion DESC',
+        limit: _pageSize,
+        offset: _currentPage * _pageSize,
+      );
+
+      if (newParcelas.isNotEmpty) {
+        _parcelas.addAll(newParcelas);
+        _currentPage++;
+        _hasMore = newParcelas.length == _pageSize;
+      } else {
+        _hasMore = false;
+      }
+    } catch (e) {
+      _errorMessage = 'Error al cargar más parcelas: ${e.toString()}';
+    } finally {
+      _isLoadingMore = false;
       notifyListeners();
     }
   }

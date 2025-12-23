@@ -13,15 +13,38 @@ class ArbolListPage extends StatefulWidget {
 }
 
 class _ArbolListPageState extends State<ArbolListPage> {
+  final ScrollController _scrollController = ScrollController();
   String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     // Cargar árboles al inicio
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ArbolProvider>().fetchArboles();
     });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_searchQuery.isNotEmpty) return;
+
+    final arbolProvider = context.read<ArbolProvider>();
+    if (arbolProvider.isLoadingMore || !arbolProvider.hasMore) return;
+
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.position.pixels;
+    const delta = 200.0;
+
+    if (currentScroll >= maxScroll - delta) {
+      arbolProvider.fetchMoreArboles();
+    }
   }
 
   Future<void> _eliminarArbol(String id) async {
@@ -127,9 +150,31 @@ class _ArbolListPageState extends State<ArbolListPage> {
               : RefreshIndicator(
                   onRefresh: () => context.read<ArbolProvider>().fetchArboles(),
                   child: ListView.builder(
+                    controller: _scrollController,
                     padding: const EdgeInsets.all(16),
-                    itemCount: arbolesFiltrados.length,
+                    itemCount: arbolesFiltrados.length + 1,
                     itemBuilder: (context, index) {
+                      // Mostrar indicador de carga al final
+                      if (index == arbolesFiltrados.length) {
+                        if (arbolProvider.isLoadingMore) {
+                          return const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 16),
+                            child: Center(child: CircularProgressIndicator()),
+                          );
+                        } else if (!arbolProvider.hasMore && arbolesFiltrados.length > 10) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            child: Center(
+                              child: Text(
+                                'No hay más árboles',
+                                style: TextStyle(color: Colors.grey[600]),
+                              ),
+                            ),
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      }
+
                       final arbol = arbolesFiltrados[index];
                       final sincronizado = arbol['sincronizado'] == 1;
                       

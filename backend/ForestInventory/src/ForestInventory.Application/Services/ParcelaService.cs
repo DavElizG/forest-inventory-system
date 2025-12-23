@@ -20,13 +20,23 @@ public class ParcelaService : IParcelaService
         _logger = logger;
     }
 
-    public async Task<IEnumerable<ParcelaDto>> GetAllParcelasAsync()
+    public async Task<(IEnumerable<ParcelaDto>, int totalCount)> GetAllParcelasAsync(int page = 1, int pageSize = 20)
     {
         try
         {
-            _logger.LogInformation("Getting all parcelas");
-            var parcelas = await _unitOfWork.ParcelaRepository.GetAllAsync();
-            return _mapper.Map<IEnumerable<ParcelaDto>>(parcelas);
+            _logger.LogInformation("Getting parcelas - Page: {Page}, PageSize: {PageSize}", page, pageSize);
+            
+            var allParcelas = await _unitOfWork.ParcelaRepository.GetAllAsync();
+            var totalCount = allParcelas.Count();
+            
+            var paginatedParcelas = allParcelas
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+            
+            var dtos = _mapper.Map<IEnumerable<ParcelaDto>>(paginatedParcelas);
+            
+            return (dtos, totalCount);
         }
         catch (Exception ex)
         {

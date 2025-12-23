@@ -6,42 +6,102 @@ class ArbolProvider extends ChangeNotifier {
   
   List<Map<String, dynamic>> _arboles = [];
   bool _isLoading = false;
+  bool _isLoadingMore = false;
   String? _errorMessage;
+  
+  // Paginación
+  int _currentPage = 1;
+  final int _pageSize = 20;
+  bool _hasMore = true;
+  String? _currentParcelaId;
 
   List<Map<String, dynamic>> get arboles => _arboles;
   bool get isLoading => _isLoading;
+  bool get isLoadingMore => _isLoadingMore;
+  bool get hasMore => _hasMore;
   String? get errorMessage => _errorMessage;
 
-  /// Obtener todos los árboles o filtrar por parcela
+  /// Obtener árboles de la primera página
   Future<void> fetchArboles({String? parcelaId}) async {
     _isLoading = true;
     _errorMessage = null;
+    _currentPage = 1;
+    _hasMore = true;
+    _currentParcelaId = parcelaId;
     notifyListeners();
 
     try {
       final database = await _db.database;
       
       if (parcelaId != null && parcelaId.isNotEmpty) {
-        // Filtrar por parcela
         _arboles = await database.query(
           'arboles',
           where: 'parcela_id = ? AND activo = ?',
           whereArgs: [parcelaId, 1],
           orderBy: 'fecha_creacion DESC',
+          limit: _pageSize,
         );
       } else {
-        // Obtener todos
         _arboles = await database.query(
           'arboles',
           where: 'activo = ?',
           whereArgs: [1],
           orderBy: 'fecha_creacion DESC',
+          limit: _pageSize,
         );
       }
+      
+      _hasMore = _arboles.length == _pageSize;
     } catch (e) {
       _errorMessage = 'Error al cargar árboles: ${e.toString()}';
     } finally {
       _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Cargar más árboles (siguiente página)
+  Future<void> fetchMoreArboles() async {
+    if (_isLoadingMore || !_hasMore || _isLoading) return;
+
+    _isLoadingMore = true;
+    notifyListeners();
+
+    try {
+      final database = await _db.database;
+      List<Map<String, dynamic>> newArboles;
+      
+      if (_currentParcelaId != null && _currentParcelaId!.isNotEmpty) {
+        newArboles = await database.query(
+          'arboles',
+          where: 'parcela_id = ? AND activo = ?',
+          whereArgs: [_currentParcelaId, 1],
+          orderBy: 'fecha_creacion DESC',
+          limit: _pageSize,
+          offset: _currentPage * _pageSize,
+        );
+      } else {
+        newArboles = await database.query(
+          'arboles',
+          where: 'activo = ?',
+          whereArgs: [1],
+          orderBy: 'fecha_creacion DESC',
+          limit: _pageSize,
+          offset: _currentPage * _pageSize,
+        );
+      }
+
+      if (newArboles.isNotEmpty) {
+        _arboles.addAll(newArboles);
+        _currentPage++;
+        _hasMore = newArboles.length == _pageSize;
+      } else {
+        _hasMore = false;
+      }
+    } catch (e) {
+      _errorMessage = 'Error al cargar más árboles: ${e.toString()}';
+    } finally {
+      _isLoadingMore = false;
       notifyListeners();
     }
   }

@@ -15,30 +15,102 @@ class EspeciesListPage extends StatefulWidget {
 }
 
 class _EspeciesListPageState extends State<EspeciesListPage> {
+  final ScrollController _scrollController = ScrollController();
   final _localDB = LocalDatabase.instance;
   List<Map<String, dynamic>> _especies = [];
   bool _isLoading = true;
+  bool _isLoadingMore = false;
+  bool _hasMore = true;
+  int _currentPage = 1;
+  final int _pageSize = 20;
   String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     _cargarEspecies();
   }
 
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_searchQuery.isNotEmpty) return;
+    if (_isLoadingMore || !_hasMore) return;
+
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.position.pixels;
+    const delta = 200.0;
+
+    if (currentScroll >= maxScroll - delta) {
+      _cargarMasEspecies();
+    }
+  }
+
   Future<void> _cargarEspecies() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _currentPage = 1;
+      _hasMore = true;
+    });
     
     try {
-      final especies = await _localDB.getEspecies();
+      final database = await _localDB.database;
+      final especies = await database.query(
+        'especies',
+        where: 'activo = ?',
+        whereArgs: [1],
+        orderBy: 'nombre_cientifico ASC',
+        limit: _pageSize,
+      );
+      
       setState(() {
         _especies = especies;
+        _hasMore = especies.length == _pageSize;
         _isLoading = false;
       });
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
         ErrorHelper.showError(context, 'Error cargando especies: $e');
+      }
+    }
+  }
+
+  Future<void> _cargarMasEspecies() async {
+    if (_isLoadingMore || !_hasMore) return;
+
+    setState(() => _isLoadingMore = true);
+
+    try {
+      final database = await _localDB.database;
+      final nuevasEspecies = await database.query(
+        'especies',
+        where: 'activo = ?',
+        whereArgs: [1],
+        orderBy: 'nombre_cientifico ASC',
+        limit: _pageSize,
+        offset: _currentPage * _pageSize,
+      );
+
+      setState(() {
+        if (nuevasEspecies.isNotEmpty) {
+          _especies.addAll(nuevasEspecies);
+          _currentPage++;
+          _hasMore = nuevasEspecies.length == _pageSize;
+        } else {
+          _hasMore = false;
+        }
+        _isLoadingMore = false;
+      });
+    } catch (e) {
+      setState(() => _isLoadingMore = false);
+      if (mounted) {
+        ErrorHelper.showError(context, 'Error cargando más especies: $e');
       }
     }
   }
@@ -146,9 +218,31 @@ class _EspeciesListPageState extends State<EspeciesListPage> {
               : RefreshIndicator(
                   onRefresh: _cargarEspecies,
                   child: ListView.builder(
+                    controller: _scrollController,
                     padding: const EdgeInsets.all(16),
-                    itemCount: _especiesFiltradas.length,
+                    itemCount: _especiesFiltradas.length + 1,
                     itemBuilder: (context, index) {
+                      // Indicador de carga al final
+                      if (index == _especiesFiltradas.length) {
+                        if (_isLoadingMore) {
+                          return const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 16),
+                            child: Center(child: CircularProgressIndicator()),
+                          );
+                        } else if (!_hasMore && _especiesFiltradas.length > 10) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            child: Center(
+                              child: Text(
+                                'No hay más especies',
+                                style: TextStyle(color: Colors.grey[600]),
+                              ),
+                            ),
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      }
+
                       final especie = _especiesFiltradas[index];
                       final sincronizado = especie['sincronizado'] == 1;
                       

@@ -31,14 +31,26 @@ public class ParcelasController : ControllerBase
     }
 
     /// <summary>
-    /// Obtener todas las parcelas
+    /// Obtener todas las parcelas con paginación
     /// </summary>
+    /// <param name="page">Número de página (inicia en 1)</param>
+    /// <param name="pageSize">Tamaño de página (por defecto 20, máximo 100)</param>
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<ParcelaDto>>> GetAll()
+    public async Task<ActionResult<IEnumerable<ParcelaDto>>> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
         try
         {
-            var parcelas = await _parcelaService.GetAllParcelasAsync();
+            // Validar parámetros
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 20;
+            if (pageSize > 100) pageSize = 100;
+
+            var (parcelas, totalCount) = await _parcelaService.GetAllParcelasAsync(page, pageSize);
+            
+            // Agregar header con el total count para paginación en el cliente
+            Response.Headers.Append("X-Total-Count", totalCount.ToString());
+            Response.Headers.Append("Access-Control-Expose-Headers", "X-Total-Count");
+            
             return Ok(parcelas);
         }
         catch (Exception ex)

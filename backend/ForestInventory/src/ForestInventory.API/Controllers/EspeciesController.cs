@@ -39,8 +39,10 @@ public class EspeciesController : ControllerBase
     }
 
     /// <summary>
-    /// Obtener todas las especies
+    /// Obtener todas las especies con paginación
     /// </summary>
+    /// <param name="page">Número de página (inicia en 1)</param>
+    /// <param name="pageSize">Tamaño de página (por defecto 20, máximo 100)</param>
     /// <response code="200">Lista de especies obtenida exitosamente</response>
     /// <response code="401">No autorizado - Token inválido o expirado</response>
     /// <response code="500">Error interno del servidor</response>
@@ -48,11 +50,19 @@ public class EspeciesController : ControllerBase
     [ProducesResponseType(typeof(IEnumerable<EspecieDto>), 200)]
     [ProducesResponseType(401)]
     [ProducesResponseType(500)]
-    public async Task<ActionResult<IEnumerable<EspecieDto>>> GetAll()
+    public async Task<ActionResult<IEnumerable<EspecieDto>>> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
         try
         {
-            var especies = await _especieService.GetAllEspeciesAsync();
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 20;
+            if (pageSize > 100) pageSize = 100;
+
+            var (especies, totalCount) = await _especieService.GetAllEspeciesAsync(page, pageSize);
+            
+            Response.Headers.Append("X-Total-Count", totalCount.ToString());
+            Response.Headers.Append("Access-Control-Expose-Headers", "X-Total-Count");
+            
             return Ok(especies);
         }
         catch (Exception ex)
