@@ -6,6 +6,16 @@ using ForestInventory.Application.DTOs;
 
 namespace ForestInventory.API.Controllers;
 
+/// <summary>
+/// Controlador para gestión de parcelas forestales
+/// </summary>
+/// <remarks>
+/// Permisos de acceso:
+/// - Administrador: Acceso completo
+/// - Supervisor: Acceso completo (gestión de parcelas de campo)
+/// - TecnicoForestal: Acceso completo (asignación de parcelas)
+/// - Consultor: Acceso completo (solo lectura recomendado)
+/// </remarks>
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]

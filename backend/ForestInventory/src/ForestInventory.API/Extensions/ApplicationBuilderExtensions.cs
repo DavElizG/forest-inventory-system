@@ -98,15 +98,20 @@ public static class InfrastructureServiceExtensions
         // Configurar políticas de autorización
         services.AddAuthorization(options =>
         {
-            // Política para administradores únicamente
+            // Política para administradores únicamente (gestión de usuarios)
             options.AddPolicy("AdminOnly", policy => 
                 policy.RequireRole("Administrador"));
             
-            // Política para staff (Administrador, Supervisor, TecnicoForestal)
-            options.AddPolicy("StaffAccess", policy => 
+            // Política para app móvil (Administrador, Supervisor, TecnicoForestal)
+            // Permite acceso completo a endpoints de especies, árboles, parcelas, sync
+            options.AddPolicy("MobileAppAccess", policy => 
                 policy.RequireRole("Administrador", "Supervisor", "TecnicoForestal"));
             
-            // Política para todos los usuarios autenticados
+            // Política para staff con permisos avanzados (Administrador y Supervisor)
+            options.AddPolicy("AdvancedAccess", policy => 
+                policy.RequireRole("Administrador", "Supervisor"));
+            
+            // Política para todos los usuarios autenticados (incluye Consultor para lectura)
             options.AddPolicy("AuthenticatedUser", policy => 
                 policy.RequireAuthenticatedUser());
         });

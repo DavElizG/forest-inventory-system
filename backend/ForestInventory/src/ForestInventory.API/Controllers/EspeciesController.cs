@@ -5,6 +5,16 @@ using ForestInventory.Application.DTOs;
 
 namespace ForestInventory.API.Controllers;
 
+/// <summary>
+/// Controlador para gestión de especies forestales
+/// </summary>
+/// <remarks>
+/// Permisos de acceso:
+/// - Administrador: Acceso completo
+/// - Supervisor: Acceso completo
+/// - TecnicoForestal: Acceso completo
+/// - Consultor: Acceso completo (solo lectura recomendado)
+/// </remarks>
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
