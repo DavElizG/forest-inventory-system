@@ -1,13 +1,51 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:showcaseview/showcaseview.dart';
 
 import '../../../core/config/router_config.dart' as routes;
+import '../../../core/services/onboarding_service.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/connectivity_banner.dart';
 import '../../widgets/sync_loading_overlay.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final _onboardingService = OnboardingService();
+  
+  // Keys para los showcases
+  final GlobalKey _arbolesKey = GlobalKey();
+  final GlobalKey _parcelasKey = GlobalKey();
+  final GlobalKey _especiesKey = GlobalKey();
+  final GlobalKey _sincronizarKey = GlobalKey();
+  final GlobalKey _exportarKey = GlobalKey();
+  final GlobalKey _settingsKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    // Verificar si debe mostrar el onboarding
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final completed = await _onboardingService.isHomeCompleted();
+      if (!completed && mounted) {
+        ShowCaseWidget.of(context).startShowCase([
+          _arbolesKey,
+          _parcelasKey,
+          _especiesKey,
+          _sincronizarKey,
+          _exportarKey,
+          _settingsKey,
+        ]);
+        // Marcar como completado después de iniciar
+        await _onboardingService.setHomeCompleted();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,10 +67,14 @@ class HomeScreen extends StatelessWidget {
               );
             },
           ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () =>
-                Navigator.pushNamed(context, routes.AppRoutes.settings),
+          Showcase(
+            key: _settingsKey,
+            description: 'Accede a la configuración, tu perfil y cierra sesión desde aquí.',
+            child: IconButton(
+              icon: const Icon(Icons.settings),
+              onPressed: () =>
+                  Navigator.pushNamed(context, routes.AppRoutes.settings),
+            ),
           ),
         ],
       ),
@@ -45,40 +87,65 @@ class HomeScreen extends StatelessWidget {
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
               children: [
-                _buildMenuCard(
-                  context,
-                  'Árboles',
-                  Icons.park,
-                  routes.AppRoutes.arbolList,
-                  Colors.green,
+                Showcase(
+                  key: _arbolesKey,
+                  title: 'Árboles',
+                  description: 'Aquí puedes registrar los árboles que encuentres en las parcelas. Mide el diámetro, altura y registra la especie.',
+                  child: _buildMenuCard(
+                    context,
+                    'Árboles',
+                    Icons.park,
+                    routes.AppRoutes.arbolList,
+                    Colors.green,
+                  ),
                 ),
-                _buildMenuCard(
-                  context,
-                  'Parcelas',
-                  Icons.grid_on,
-                  routes.AppRoutes.parcelaList,
-                  Colors.blue,
+                Showcase(
+                  key: _parcelasKey,
+                  title: 'Parcelas',
+                  description: 'Crea y gestiona las parcelas del inventario. Cada parcela representa un área específica del bosque.',
+                  child: _buildMenuCard(
+                    context,
+                    'Parcelas',
+                    Icons.grid_on,
+                    routes.AppRoutes.parcelaList,
+                    Colors.blue,
+                  ),
                 ),
-                _buildMenuCard(
-                  context,
-                  'Especies',
-                  Icons.eco,
-                  routes.AppRoutes.especieList,
-                  Colors.teal,
+                Showcase(
+                  key: _especiesKey,
+                  title: 'Especies',
+                  description: 'Consulta el catálogo de especies forestales disponibles para clasificar los árboles.',
+                  child: _buildMenuCard(
+                    context,
+                    'Especies',
+                    Icons.eco,
+                    routes.AppRoutes.especieList,
+                    Colors.teal,
+                  ),
                 ),
-                _buildMenuCard(
-                  context,
-                  'Sincronizar',
-                  Icons.sync,
-                  routes.AppRoutes.sync,
-                  Colors.orange,
+                Showcase(
+                  key: _sincronizarKey,
+                  title: 'Sincronizar',
+                  description: 'Sincroniza tus datos locales con el servidor cuando tengas conexión a internet.',
+                  child: _buildMenuCard(
+                    context,
+                    'Sincronizar',
+                    Icons.sync,
+                    routes.AppRoutes.sync,
+                    Colors.orange,
+                  ),
                 ),
-                _buildMenuCard(
-                  context,
-                  'Exportar',
-                  Icons.download,
-                  routes.AppRoutes.export,
-                  Colors.purple,
+                Showcase(
+                  key: _exportarKey,
+                  title: 'Exportar',
+                  description: 'Exporta tus datos en diferentes formatos: CSV, Excel o KML/KMZ para Google Earth.',
+                  child: _buildMenuCard(
+                    context,
+                    'Exportar',
+                    Icons.download,
+                    routes.AppRoutes.export,
+                    Colors.purple,
+                  ),
                 ),
                 _buildMenuCard(
                   context,

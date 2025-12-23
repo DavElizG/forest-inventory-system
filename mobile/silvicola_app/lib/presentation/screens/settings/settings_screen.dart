@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/config/router_config.dart' as routes;
 import '../../../core/services/connectivity_service.dart';
+import '../../../core/services/onboarding_service.dart';
 import '../../../domain/enums/rol_usuario.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/theme_provider.dart';
@@ -252,6 +253,50 @@ class SettingsScreen extends StatelessWidget {
                   onChanged: (value) => themeProvider.toggleTheme(),
                 ),
               );
+            },
+          ),
+          const Divider(height: 1),
+          
+          ListTile(
+            leading: Icon(
+              Icons.help_outline,
+              color: theme.primaryColor,
+            ),
+            title: const Text('Reiniciar Tutorial'),
+            subtitle: const Text('Volver a ver la guía de inicio'),
+            trailing: const Icon(Icons.refresh),
+            onTap: () async {
+              // Mostrar confirmación
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Reiniciar Tutorial'),
+                  content: const Text(
+                    '¿Deseas volver a ver el tutorial de la aplicación? '
+                    'Se mostrará la próxima vez que inicies la app.',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Cancelar'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text('Reiniciar'),
+                    ),
+                  ],
+                ),
+              );
+              
+              if (confirmed == true && context.mounted) {
+                await OnboardingService().resetAll();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Tutorial reiniciado. Se mostrará en la pantalla principal.'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
             },
           ),
         ],
