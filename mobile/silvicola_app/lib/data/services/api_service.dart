@@ -15,6 +15,9 @@ class ApiService {
 
   late final Dio _dio;
   late final String baseUrl;
+  
+  // Exponer Dio para casos especiales como descargas de archivos
+  Dio get dio => _dio;
 
   // Initialize API service with environment configuration
   void initialize() {

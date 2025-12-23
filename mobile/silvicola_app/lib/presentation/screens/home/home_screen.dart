@@ -50,36 +50,42 @@ class HomeScreen extends StatelessWidget {
                   'Árboles',
                   Icons.park,
                   routes.AppRoutes.arbolList,
+                  Colors.green,
                 ),
                 _buildMenuCard(
                   context,
                   'Parcelas',
                   Icons.grid_on,
                   routes.AppRoutes.parcelaList,
+                  Colors.blue,
                 ),
                 _buildMenuCard(
                   context,
                   'Especies',
                   Icons.eco,
                   routes.AppRoutes.especieList,
+                  Colors.teal,
                 ),
                 _buildMenuCard(
                   context,
                   'Sincronizar',
                   Icons.sync,
                   routes.AppRoutes.sync,
+                  Colors.orange,
+                ),
+                _buildMenuCard(
+                  context,
+                  'Exportar',
+                  Icons.download,
+                  routes.AppRoutes.export,
+                  Colors.purple,
                 ),
                 _buildMenuCard(
                   context,
                   'Reportes',
                   Icons.assessment,
                   routes.AppRoutes.reportes,
-                ),
-                _buildMenuCard(
-                  context,
-                  'Configuración',
-                  Icons.settings,
-                  routes.AppRoutes.settings,
+                  Colors.indigo,
                 ),
               ],
             ),
@@ -94,19 +100,46 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildMenuCard(
-      BuildContext context, String title, IconData icon, String route) {
+      BuildContext context, String title, IconData icon, String route, Color color) {
     return Card(
+      elevation: 2,
       child: InkWell(
         onTap: () => Navigator.pushNamed(context, route),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 48, color: Theme.of(context).primaryColor),
-            const SizedBox(height: 8),
-            Text(title,
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-          ],
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                color.withOpacity(0.1),
+                color.withOpacity(0.05),
+              ],
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, size: 48, color: color),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: color.withOpacity(0.9),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

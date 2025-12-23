@@ -14,6 +14,7 @@ import '../../presentation/screens/sync/sync_screen.dart';
 import '../../presentation/pages/sync_preview_page.dart';
 import '../../presentation/screens/reportes/reportes_screen.dart';
 import '../../presentation/screens/settings/settings_screen.dart';
+import '../../presentation/screens/export/export_screen.dart';
 import '../guards/auth_guard.dart';
 
 class AppRoutes {
@@ -28,6 +29,7 @@ class AppRoutes {
   static const String especieList = '/especies';
   static const String sync = '/sync';
   static const String syncPreview = '/sync/preview';
+  static const String export = '/export';
   static const String reportes = '/reportes';
   static const String settings = '/settings';
 
@@ -43,6 +45,7 @@ class AppRoutes {
         especieList: (context) => const AuthGuardedRoute(child: EspeciesListPage()),
         sync: (context) => const AuthGuardedRoute(child: SyncScreen()),
         syncPreview: (context) => const AuthGuardedRoute(child: SyncPreviewPage()),
+        export: (context) => const AuthGuardedRoute(child: ExportScreen()),
         reportes: (context) => const AuthGuardedRoute(child: ReportesScreen()),
         settings: (context) => const AuthGuardedRoute(child: SettingsScreen()),
       };
