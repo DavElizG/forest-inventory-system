@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/services/location_service.dart';
+import '../../../core/services/connectivity_service.dart';
 import '../../../core/utils/error_helper.dart';
+import '../../../data/services/sync_service.dart';
 import '../../providers/arbol_provider.dart';
 import '../../providers/parcela_provider.dart';
 import '../../providers/especie_provider.dart';
@@ -208,6 +210,16 @@ class _ArbolFormPageState extends State<ArbolFormPage> {
       if (!mounted) return;
 
       if (success) {
+        // Actualizar contadores de sincronización
+        final syncService = context.read<SyncService>();
+        await syncService.updatePendingCounts();
+
+        // Si hay internet, sincronizar automáticamente
+        final connectivity = context.read<ConnectivityService>();
+        if (connectivity.isOnline) {
+          await syncService.syncAll();
+        }
+
         ErrorHelper.showSuccess(
           context,
           widget.arbol == null ? 'Árbol registrado' : 'Árbol actualizado',

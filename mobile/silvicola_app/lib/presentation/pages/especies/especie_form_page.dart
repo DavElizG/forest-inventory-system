@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../../../data/local/local_database.dart';
+import '../../../data/services/sync_service.dart';
 import '../../../core/services/connectivity_service.dart';
 import '../../../core/utils/error_helper.dart';
 import '../../../core/widgets/role_based_widget.dart';
@@ -82,11 +83,27 @@ class _EspecieFormPageState extends State<EspecieFormPage> {
         await _localDB.updateEspecie(especieData['id'], especieData);
         if (mounted) {
           ErrorHelper.showSuccess(context, 'Especie actualizada correctamente');
+          final syncService = context.read<SyncService>();
+          await syncService.updatePendingCounts();
+          
+          // Si hay internet, sincronizar automáticamente
+          final connectivity = context.watch<ConnectivityService>();
+          if (connectivity.isOnline) {
+            await syncService.syncAll();
+          }
         }
       } else {
         await _localDB.insertEspecie(especieData);
         if (mounted) {
           ErrorHelper.showSuccess(context, 'Especie creada correctamente');
+          final syncService = context.read<SyncService>();
+          await syncService.updatePendingCounts();
+          
+          // Si hay internet, sincronizar automáticamente
+          final connectivity = context.watch<ConnectivityService>();
+          if (connectivity.isOnline) {
+            await syncService.syncAll();
+          }
         }
       }
 

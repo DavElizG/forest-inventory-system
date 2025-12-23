@@ -80,7 +80,17 @@ class SyncService extends ChangeNotifier {
     });
   }
 
-  /// Actualizar contadores de registros pendientes
+  /// Actualizar contadores de registros pendientes (público para llamar desde formularios)
+  Future<void> updatePendingCounts() async {
+    try {
+      _pendingCounts = await _localDB.getContadoresSincronizacion();
+      notifyListeners();
+    } catch (e) {
+      _logger.e('Error actualizando contadores: $e');
+    }
+  }
+
+  /// Actualizar contadores internamente sin notificar
   Future<void> _updatePendingCounts({bool notify = true}) async {
     try {
       _pendingCounts = await _localDB.getContadoresSincronizacion();

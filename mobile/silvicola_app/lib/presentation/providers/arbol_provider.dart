@@ -34,21 +34,35 @@ class ArbolProvider extends ChangeNotifier {
       final database = await _db.database;
       
       if (parcelaId != null && parcelaId.isNotEmpty) {
-        _arboles = await database.query(
-          'arboles',
-          where: 'parcela_id = ? AND activo = ?',
-          whereArgs: [parcelaId, 1],
-          orderBy: 'fecha_creacion DESC',
-          limit: _pageSize,
-        );
+        _arboles = await database.rawQuery('''
+          SELECT 
+            a.*,
+            e.nombre_cientifico as especieNombre,
+            e.nombre_comun as especieNombreComun,
+            p.codigo as parcelaCodigo,
+            p.nombre as parcelaNombre
+          FROM arboles a
+          LEFT JOIN especies e ON a.especie_id = e.id
+          LEFT JOIN parcelas p ON a.parcela_id = p.id
+          WHERE a.parcela_id = ? AND a.activo = 1
+          ORDER BY a.fecha_creacion DESC
+          LIMIT ?
+        ''', [parcelaId, _pageSize]);
       } else {
-        _arboles = await database.query(
-          'arboles',
-          where: 'activo = ?',
-          whereArgs: [1],
-          orderBy: 'fecha_creacion DESC',
-          limit: _pageSize,
-        );
+        _arboles = await database.rawQuery('''
+          SELECT 
+            a.*,
+            e.nombre_cientifico as especieNombre,
+            e.nombre_comun as especieNombreComun,
+            p.codigo as parcelaCodigo,
+            p.nombre as parcelaNombre
+          FROM arboles a
+          LEFT JOIN especies e ON a.especie_id = e.id
+          LEFT JOIN parcelas p ON a.parcela_id = p.id
+          WHERE a.activo = 1
+          ORDER BY a.fecha_creacion DESC
+          LIMIT ?
+        ''', [_pageSize]);
       }
       
       _hasMore = _arboles.length == _pageSize;
@@ -70,25 +84,38 @@ class ArbolProvider extends ChangeNotifier {
     try {
       final database = await _db.database;
       List<Map<String, dynamic>> newArboles;
+      final offset = _currentPage * _pageSize;
       
       if (_currentParcelaId != null && _currentParcelaId!.isNotEmpty) {
-        newArboles = await database.query(
-          'arboles',
-          where: 'parcela_id = ? AND activo = ?',
-          whereArgs: [_currentParcelaId, 1],
-          orderBy: 'fecha_creacion DESC',
-          limit: _pageSize,
-          offset: _currentPage * _pageSize,
-        );
+        newArboles = await database.rawQuery('''
+          SELECT 
+            a.*,
+            e.nombre_cientifico as especieNombre,
+            e.nombre_comun as especieNombreComun,
+            p.codigo as parcelaCodigo,
+            p.nombre as parcelaNombre
+          FROM arboles a
+          LEFT JOIN especies e ON a.especie_id = e.id
+          LEFT JOIN parcelas p ON a.parcela_id = p.id
+          WHERE a.parcela_id = ? AND a.activo = 1
+          ORDER BY a.fecha_creacion DESC
+          LIMIT ? OFFSET ?
+        ''', [_currentParcelaId, _pageSize, offset]);
       } else {
-        newArboles = await database.query(
-          'arboles',
-          where: 'activo = ?',
-          whereArgs: [1],
-          orderBy: 'fecha_creacion DESC',
-          limit: _pageSize,
-          offset: _currentPage * _pageSize,
-        );
+        newArboles = await database.rawQuery('''
+          SELECT 
+            a.*,
+            e.nombre_cientifico as especieNombre,
+            e.nombre_comun as especieNombreComun,
+            p.codigo as parcelaCodigo,
+            p.nombre as parcelaNombre
+          FROM arboles a
+          LEFT JOIN especies e ON a.especie_id = e.id
+          LEFT JOIN parcelas p ON a.parcela_id = p.id
+          WHERE a.activo = 1
+          ORDER BY a.fecha_creacion DESC
+          LIMIT ? OFFSET ?
+        ''', [_pageSize, offset]);
       }
 
       if (newArboles.isNotEmpty) {

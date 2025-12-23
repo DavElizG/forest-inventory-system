@@ -4,8 +4,11 @@ import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/services/location_service.dart';
+import '../../../core/services/connectivity_service.dart';
 import '../../providers/parcela_provider.dart';
 import '../../../core/utils/error_helper.dart';
+import '../../../data/local/local_database.dart';
+import '../../../data/services/sync_service.dart';
 
 class ParcelaFormPage extends StatefulWidget {
   final Map<String, dynamic>? parcela;
@@ -19,6 +22,7 @@ class ParcelaFormPage extends StatefulWidget {
 class _ParcelaFormPageState extends State<ParcelaFormPage> {
   final _formKey = GlobalKey<FormState>();
   final _codigoController = TextEditingController();
+  final _nombreController = TextEditingController();
   final _descripcionController = TextEditingController();
   final _areaController = TextEditingController();
   final _latitudController = TextEditingController();
@@ -29,6 +33,7 @@ class _ParcelaFormPageState extends State<ParcelaFormPage> {
   String? _locationAccuracyWarning;
 
   late final LocationService _locationService;
+  final _localDB = LocalDatabase.instance;
 
   @override
   void initState() {
@@ -38,6 +43,7 @@ class _ParcelaFormPageState extends State<ParcelaFormPage> {
     // Si es edición, cargar datos
     if (widget.parcela != null) {
       _codigoController.text = widget.parcela!['codigo'] ?? '';
+      _nombreController.text = widget.parcela!['nombre'] ?? '';
       _descripcionController.text = widget.parcela!['descripcion'] ?? '';
       _areaController.text = widget.parcela!['area']?.toString() ?? '';
       _latitudController.text = widget.parcela!['latitud']?.toString() ?? '';
@@ -48,6 +54,7 @@ class _ParcelaFormPageState extends State<ParcelaFormPage> {
   @override
   void dispose() {
     _codigoController.dispose();
+    _nombreController.dispose();
     _descripcionController.dispose();
     _areaController.dispose();
     _latitudController.dispose();
@@ -166,43 +173,62 @@ class _ParcelaFormPageState extends State<ParcelaFormPage> {
     setState(() => _isLoading = true);
 
     try {
+      final now = DateTime.now().toIso8601String();
+      final isEdit = widget.parcela != null;
+      
       final parcelaData = {
         'id': widget.parcela?['id'] ?? const Uuid().v4(),
         'codigo': _codigoController.text.trim(),
+        'nombre': _nombreController.text.trim().isEmpty 
+            ? _codigoController.text.trim() 
+            : _nombreController.text.trim(),
         'descripcion': _descripcionController.text.trim(),
         'area': double.tryParse(_areaController.text) ?? 0.0,
         'latitud': double.parse(_latitudController.text),
         'longitud': double.parse(_longitudController.text),
-        'activo': 1,
         'sincronizado': 0,
-        'fecha_creacion': widget.parcela?['fecha_creacion'] ??
-            DateTime.now().toIso8601String(),
-        'fecha_actualizacion': DateTime.now().toIso8601String(),
+        'fecha_creacion': widget.parcela?['fecha_creacion'] ?? now,
+        'fecha_actualizacion': now,
       };
 
-      final parcelaProvider = context.read<ParcelaProvider>();
-      final success = await parcelaProvider.saveParcela(parcelaData);
-
-      if (success && mounted) {
-        ErrorHelper.showSuccess(
-          context,
-          widget.parcela == null
-              ? 'Parcela creada exitosamente'
-              : 'Parcela actualizada exitosamente',
-        );
-        Navigator.pop(context, true);
-      } else if (mounted) {
-        ErrorHelper.showError(
-          context,
-          parcelaProvider.errorMessage ?? 'Error al guardar la parcela',
-        );
+      if (isEdit) {
+        await _localDB.updateParcela(parcelaData['id'], parcelaData);
+        if (mounted) {
+          ErrorHelper.showSuccess(context, 'Parcela actualizada correctamente');
+          // Refrescar lista y contadores
+          context.read<ParcelaProvider>().fetchParcelas();
+          final syncService = context.read<SyncService>();
+          await syncService.updatePendingCounts();
+          
+          // Si hay internet, sincronizar automáticamente
+          final connectivity = context.read<ConnectivityService>();
+          if (connectivity.isOnline) {
+            await syncService.syncAll();
+          }
+          
+          Navigator.pop(context, true);
+        }
+      } else {
+        await _localDB.insertParcela(parcelaData);
+        if (mounted) {
+          ErrorHelper.showSuccess(context, 'Parcela creada correctamente');
+          // Refrescar lista y contadores
+          context.read<ParcelaProvider>().fetchParcelas();
+          final syncService = context.read<SyncService>();
+          await syncService.updatePendingCounts();
+          
+          // Si hay internet, sincronizar automáticamente
+          final connectivity = context.read<ConnectivityService>();
+          if (connectivity.isOnline) {
+            await syncService.syncAll();
+          }
+          
+          Navigator.pop(context, true);
+        }
       }
     } catch (e) {
       if (mounted) {
-        ErrorHelper.showError(
-          context,
-          'Error al guardar: ${e.toString()}',
-        );
+        ErrorHelper.showError(context, 'Error al guardar parcela: $e');
       }
     } finally {
       if (mounted) {
@@ -246,6 +272,21 @@ class _ParcelaFormPageState extends State<ParcelaFormPage> {
                     }
                     return null;
                   },
+                  textInputAction: TextInputAction.next,
+                ),
+                const SizedBox(height: 16),
+
+                // Nombre
+                TextFormField(
+                  controller: _nombreController,
+                  decoration: InputDecoration(
+                    labelText: 'Nombre',
+                    hintText: 'Nombre descriptivo de la parcela',
+                    prefixIcon: const Icon(Icons.label),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                   textInputAction: TextInputAction.next,
                 ),
                 const SizedBox(height: 16),
@@ -382,71 +423,80 @@ class _ParcelaFormPageState extends State<ParcelaFormPage> {
                         ),
                         const SizedBox(height: 16),
 
-                        // Latitud
-                        TextFormField(
-                          controller: _latitudController,
-                          decoration: InputDecoration(
-                            labelText: 'Latitud *',
-                            hintText: 'Ej: 14.123456',
-                            prefixIcon: const Icon(Icons.pin_drop),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
+                        // Latitud y Longitud en fila
+                        Row(
+                          children: [
+                            // Latitud
+                            Expanded(
+                              child: TextFormField(
+                                controller: _latitudController,
+                                decoration: InputDecoration(
+                                  labelText: 'Latitud *',
+                                  hintText: 'Ej: 14.123',
+                                  prefixIcon: const Icon(Icons.pin_drop),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                keyboardType: const TextInputType.numberWithOptions(
+                                  decimal: true,
+                                  signed: true,
+                                ),
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.allow(
+                                    RegExp(r'^-?\d*\.?\d*'),
+                                  ),
+                                ],
+                                validator: (value) {
+                                  if (value == null || value.trim().isEmpty) {
+                                    return 'Requerido';
+                                  }
+                                  final lat = double.tryParse(value);
+                                  if (lat == null || lat < -90 || lat > 90) {
+                                    return 'Inválido';
+                                  }
+                                  return null;
+                                },
+                                textInputAction: TextInputAction.next,
+                              ),
                             ),
-                          ),
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                            signed: true,
-                          ),
-                          inputFormatters: [
-                            FilteringTextInputFormatter.allow(
-                              RegExp(r'^-?\d*\.?\d*'),
+                            const SizedBox(width: 12),
+                            
+                            // Longitud
+                            Expanded(
+                              child: TextFormField(
+                                controller: _longitudController,
+                                decoration: InputDecoration(
+                                  labelText: 'Longitud *',
+                                  hintText: 'Ej: -89.123',
+                                  prefixIcon: const Icon(Icons.pin_drop),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                keyboardType: const TextInputType.numberWithOptions(
+                                  decimal: true,
+                                  signed: true,
+                                ),
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.allow(
+                                    RegExp(r'^-?\d*\.?\d*'),
+                                  ),
+                                ],
+                                validator: (value) {
+                                  if (value == null || value.trim().isEmpty) {
+                                    return 'Requerido';
+                                  }
+                                  final lon = double.tryParse(value);
+                                  if (lon == null || lon < -180 || lon > 180) {
+                                    return 'Inválido';
+                                  }
+                                  return null;
+                                },
+                                textInputAction: TextInputAction.done,
+                              ),
                             ),
                           ],
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'La latitud es requerida';
-                            }
-                            final lat = double.tryParse(value);
-                            if (lat == null || lat < -90 || lat > 90) {
-                              return 'Latitud inválida (-90 a 90)';
-                            }
-                            return null;
-                          },
-                          textInputAction: TextInputAction.next,
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Longitud
-                        TextFormField(
-                          controller: _longitudController,
-                          decoration: InputDecoration(
-                            labelText: 'Longitud *',
-                            hintText: 'Ej: -89.123456',
-                            prefixIcon: const Icon(Icons.pin_drop),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                            signed: true,
-                          ),
-                          inputFormatters: [
-                            FilteringTextInputFormatter.allow(
-                              RegExp(r'^-?\d*\.?\d*'),
-                            ),
-                          ],
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'La longitud es requerida';
-                            }
-                            final lon = double.tryParse(value);
-                            if (lon == null || lon < -180 || lon > 180) {
-                              return 'Longitud inválida (-180 a 180)';
-                            }
-                            return null;
-                          },
-                          textInputAction: TextInputAction.done,
                         ),
                       ],
                     ),
