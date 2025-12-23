@@ -6,6 +6,7 @@ public class Arbol
 {
     public Guid Id { get; set; }
     public string Codigo { get; set; } = string.Empty;
+    public int NumeroArbol { get; set; } // Número secuencial del árbol dentro de la parcela
     public double Latitud { get; set; }
     public double Longitud { get; set; }
     public double? Altitud { get; set; }

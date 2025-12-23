@@ -357,19 +357,15 @@ class SyncService extends ChangeNotifier {
           final response = await _dio.post(
             '/api/Arboles',
             data: {
-              'numeroArbol': arbol['numero_arbol'],
+              'numeroArbol': arbol['numero_arbol'] ?? 1,
               'parcelaId': arbol['parcela_id'],
               'especieId': arbol['especie_id'],
-              'dap': arbol['dap'],
-              'altura': arbol['altura'],
-              'alturaComercial': arbol['altura_comercial'],
-              'estadoSalud': arbol['estado_salud'],
-              'coordenadaX': arbol['coordenada_x'],
-              'coordenadaY': arbol['coordenada_y'],
               'latitud': arbol['latitud'],
               'longitud': arbol['longitud'],
-              'observaciones': arbol['observaciones'],
-              'fechaMedicion': arbol['fecha_medicion'],
+              'altura': arbol['altura'],
+              'diametro': arbol['dap'], // Backend espera 'diametro' no 'dap'
+              'nombreLocal': arbol['observaciones'], // Usamos observaciones como nombreLocal
+              'descripcion': arbol['observaciones'], // También como descripción
             },
           );
 

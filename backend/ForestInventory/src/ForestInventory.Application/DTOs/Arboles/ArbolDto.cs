@@ -3,6 +3,7 @@ namespace ForestInventory.Application.DTOs;
 public class ArbolDto
 {
     public Guid Id { get; set; }
+    public int NumeroArbol { get; set; }
     public Guid ParcelaId { get; set; }
     public Guid EspecieId { get; set; }
     public double Latitud { get; set; }
@@ -27,6 +28,7 @@ public class ArbolDto
 
 public class CreateArbolDto
 {
+    public int NumeroArbol { get; set; }
     public Guid ParcelaId { get; set; }
     public Guid EspecieId { get; set; }
     public double Latitud { get; set; }

@@ -46,6 +46,7 @@ class _ArbolFormPageState extends State<ArbolFormPage> {
   // Estado
   String? _selectedParcelaId;
   String? _selectedEspecieId;
+  int _numeroArbol = 1;
   bool _isLoading = false;
   bool _isCapturingLocation = false;
   String? _locationAccuracyWarning;
@@ -71,12 +72,18 @@ class _ArbolFormPageState extends State<ArbolFormPage> {
       if (!mounted) return;
       context.read<ParcelaProvider>().fetchParcelas();
       context.read<EspecieProvider>().fetchEspecies();
+      
+      // Actualizar número de árbol si es creación con parcela preseleccionada
+      if (widget.arbol == null && widget.preSelectedParcelaId != null) {
+        _updateNumeroArbol(widget.preSelectedParcelaId!);
+      }
     });
 
     if (widget.arbol != null) {
       final arbol = widget.arbol!;
       _selectedParcelaId = arbol['parcela_id'];
       _selectedEspecieId = arbol['especie_id'];
+      _numeroArbol = arbol['numero_arbol'] ?? 1;
       _alturaController.text = arbol['altura']?.toString() ?? '';
       _diametroController.text = arbol['dap']?.toString() ?? '';
       _observacionesController.text = arbol['observaciones'] ?? '';
@@ -85,6 +92,15 @@ class _ArbolFormPageState extends State<ArbolFormPage> {
     } else if (widget.preSelectedParcelaId != null) {
       _selectedParcelaId = widget.preSelectedParcelaId;
     }
+  }
+
+  /// Actualizar número de árbol cuando se selecciona una parcela
+  Future<void> _updateNumeroArbol(String parcelaId) async {
+    final provider = context.read<ArbolProvider>();
+    final nextNumero = await provider.getNextNumeroArbol(parcelaId);
+    setState(() {
+      _numeroArbol = nextNumero;
+    });
   }
 
   @override
@@ -189,7 +205,7 @@ class _ArbolFormPageState extends State<ArbolFormPage> {
     try {
       final arbolData = {
         'id': widget.arbol?['id'] ?? const Uuid().v4(),
-        'numero_arbol': widget.arbol?['numero_arbol'] ?? 0,
+        'numero_arbol': _numeroArbol,
         'parcela_id': _selectedParcelaId!,
         'especie_id': _selectedEspecieId!,
         'altura': double.parse(_alturaController.text),
@@ -307,7 +323,12 @@ class _ArbolFormPageState extends State<ArbolFormPage> {
               ? '$cod - $desc'
               : cod;
         },
-        onChanged: (v) => setState(() => _selectedParcelaId = v),
+        onChanged: (v) {
+          setState(() => _selectedParcelaId = v);
+          if (v != null && widget.arbol == null) {
+            _updateNumeroArbol(v);
+          }
+        },
         validator: (v) => v == null || v.isEmpty ? 'Requerido' : null,
         isLoading: data.isLoading,
       ),

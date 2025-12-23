@@ -73,6 +73,7 @@ public class ArbolService : IArbolService
             var arbol = new Arbol
             {
                 Codigo = Guid.NewGuid().ToString().Substring(0, 8),
+                NumeroArbol = dto.NumeroArbol,
                 Latitud = dto.Latitud,
                 Longitud = dto.Longitud,
                 Altitud = 0,

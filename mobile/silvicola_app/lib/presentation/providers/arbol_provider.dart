@@ -165,6 +165,26 @@ class ArbolProvider extends ChangeNotifier {
     }
   }
 
+  /// Obtener el siguiente número de árbol para una parcela específica
+  Future<int> getNextNumeroArbol(String parcelaId) async {
+    try {
+      final database = await _db.database;
+      final result = await database.rawQuery('''
+        SELECT COALESCE(MAX(numero_arbol), 0) + 1 as next_numero
+        FROM arboles
+        WHERE parcela_id = ? AND activo = 1
+      ''', [parcelaId]);
+      
+      if (result.isNotEmpty && result.first['next_numero'] != null) {
+        return result.first['next_numero'] as int;
+      }
+      return 1;
+    } catch (e) {
+      _errorMessage = 'Error al obtener número de árbol: ${e.toString()}';
+      return 1; // Por defecto retornar 1 si hay error
+    }
+  }
+
   /// Guardar o actualizar árbol
   Future<bool> saveArbol(Map<String, dynamic> arbolData) async {
     _isLoading = true;
