@@ -51,9 +51,11 @@ void main() async {
 
   // Crear instancias de servicios para offline-first
   final connectivityService = ConnectivityService();
+  final apiService = ApiService.instance; // Obtener singleton de ApiService
   final syncService = SyncService(
     connectivityService: connectivityService,
     dio: syncDio,
+    apiService: apiService,
   );
 
   runApp(

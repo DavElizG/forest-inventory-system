@@ -5,12 +5,14 @@ import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
 import '../local/local_database.dart';
 import '../../core/services/connectivity_service.dart';
+import 'api_service.dart';
 
 /// Servicio de sincronización automática entre base de datos local y servidor
 class SyncService extends ChangeNotifier {
   final LocalDatabase _localDB = LocalDatabase.instance;
   final ConnectivityService _connectivityService;
   final Dio _dio;
+  final ApiService _apiService;
   final Logger _logger = Logger();
   
   Timer? _autoSyncTimer;
@@ -33,8 +35,10 @@ class SyncService extends ChangeNotifier {
   SyncService({
     required ConnectivityService connectivityService,
     required Dio dio,
+    required ApiService apiService,
   })  : _connectivityService = connectivityService,
-        _dio = dio {
+        _dio = dio,
+        _apiService = apiService {
     _init();
   }
 
@@ -93,6 +97,18 @@ class SyncService extends ChangeNotifier {
       return SyncResult(
         success: false,
         message: 'Ya hay una sincronización en curso',
+        synced: 0,
+        failed: 0,
+      );
+    }
+
+    // Verificar si hay un token de autenticación
+    final token = await _apiService.getToken();
+    if (token == null) {
+      _logger.w('⚠️ No hay token de autenticación, omitiendo sincronización');
+      return SyncResult(
+        success: false,
+        message: 'No autorizado. Inicia sesión para sincronizar.',
         synced: 0,
         failed: 0,
       );
