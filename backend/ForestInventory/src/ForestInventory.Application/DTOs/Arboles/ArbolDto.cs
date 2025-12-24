@@ -31,6 +31,7 @@ public class CreateArbolDto
     public int NumeroArbol { get; set; }
     public Guid ParcelaId { get; set; }
     public Guid EspecieId { get; set; }
+    public Guid UsuarioCreadorId { get; set; }
     public double Latitud { get; set; }
     public double Longitud { get; set; }
     public double? Altura { get; set; }

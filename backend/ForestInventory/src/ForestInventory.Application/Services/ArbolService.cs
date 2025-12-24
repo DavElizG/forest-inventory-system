@@ -86,7 +86,7 @@ public class ArbolService : IArbolService
                 FechaMedicion = DateTime.UtcNow,
                 ParcelaId = dto.ParcelaId,
                 EspecieId = dto.EspecieId,
-                UsuarioCreadorId = Guid.Empty,
+                UsuarioCreadorId = dto.UsuarioCreadorId,
                 FechaCreacion = DateTime.UtcNow,
                 Sincronizado = false
             };
