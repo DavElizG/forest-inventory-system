@@ -4,7 +4,11 @@ import 'package:provider/provider.dart';
 import '../../../core/config/router_config.dart' as routes;
 import '../../../core/utils/error_helper.dart';
 import '../../../core/widgets/connectivity_widgets.dart';
+import '../../../data/services/sync_service.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/especie_provider.dart';
+import '../../providers/parcela_provider.dart';
+import '../../providers/arbol_provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -27,6 +31,32 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  /// Sincronizar datos del servidor y recargar providers
+  Future<void> _syncAndRefreshData() async {
+    print('[LOGIN] 🔧 Entrando a _syncAndRefreshData()');
+    try {
+      // 1. Ejecutar sincronización (descarga datos del servidor)
+      print('[LOGIN] 📡 Obteniendo SyncService...');
+      final syncService = context.read<SyncService>();
+      print('[LOGIN] 📥 Llamando a syncAll()...');
+      await syncService.syncAll();
+      print('[LOGIN] ✅ syncAll() completado');
+      
+      // 2. Recargar todos los providers
+      if (mounted) {
+        print('[LOGIN] 🔄 Recargando providers...');
+        await Future.wait([
+          context.read<EspecieProvider>().fetchEspecies(),
+          context.read<ParcelaProvider>().fetchParcelas(),
+          context.read<ArbolProvider>().fetchArboles(),
+        ]);
+        print('[LOGIN] ✅ Providers recargados');
+      }
+    } catch (e) {
+      print('[LOGIN] ❌ Error en sync inicial: $e');
+    }
+  }
+
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -43,11 +73,18 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
 
     if (success) {
+      print('[LOGIN] 🔄 Iniciando sincronización de datos...');
+      // Sincronizar datos del servidor y recargar listas
+      await _syncAndRefreshData();
+      print('[LOGIN] ✅ Sincronización completada');
+      
       // Verificar si hay una ruta pendiente
       final pendingRoute = authProvider.consumePendingRoute();
       final targetRoute = pendingRoute ?? routes.AppRoutes.home;
       
-      Navigator.of(context).pushReplacementNamed(targetRoute);
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed(targetRoute);
+      }
     } else {
       ErrorHelper.showError(
         context,

@@ -1,21 +1,25 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
 import '../local/local_database.dart';
 import '../../core/services/connectivity_service.dart';
 import 'api_service.dart';
+import 'sync/sync_download_service.dart';
+import 'sync/sync_upload_service.dart';
+import 'sync/sync_result.dart';
 
-/// Servicio de sincronización automática entre base de datos local y servidor
+/// Servicio de sincronización bidireccional (offline-first)
+/// Coordina la descarga (pull) y subida (push) de datos
 class SyncService extends ChangeNotifier {
   final LocalDatabase _localDB = LocalDatabase.instance;
   final ConnectivityService _connectivityService;
   final ApiService _apiService;
   final Logger _logger = Logger();
   
-  // Usar el Dio del ApiService que ya tiene el interceptor de auth
+  late final SyncDownloadService _downloadService;
+  late final SyncUploadService _uploadService;
+  
   Dio get _dio => _apiService.dio;
   
   Timer? _autoSyncTimer;
@@ -40,6 +44,18 @@ class SyncService extends ChangeNotifier {
     required ApiService apiService,
   })  : _connectivityService = connectivityService,
         _apiService = apiService {
+    // Inicializar servicios auxiliares
+    _downloadService = SyncDownloadService(
+      localDB: _localDB,
+      dio: _dio,
+      logger: _logger,
+    );
+    _uploadService = SyncUploadService(
+      localDB: _localDB,
+      dio: _dio,
+      logger: _logger,
+      apiService: _apiService,
+    );
     _init();
   }
 
@@ -148,41 +164,38 @@ class SyncService extends ChangeNotifier {
     try {
       _logger.i('🔄 Iniciando sincronización...');
 
+      // Limpiar registros corruptos ANTES de sincronizar
+      _logger.i('🗑️ Limpiando árboles con referencias inválidas...');
+      final arbolesEliminados = await _localDB.eliminarArbolesConReferenciasInvalidas();
+      if (arbolesEliminados > 0) {
+        _logger.i('✅ Eliminados $arbolesEliminados árboles con IDs corruptos');
+      }
+
       // FASE 1: DESCARGAR datos del servidor (Pull)
       _logger.i('⬇️ Descargando datos del servidor...');
-      
-      // 1.1 Descargar especies
-      await _downloadEspecies();
-      
-      // 1.2 Descargar parcelas
-      await _downloadParcelas();
-      
-      // 1.3 Descargar árboles
-      await _downloadArboles();
+      await _downloadService.downloadEspecies();
+      await _downloadService.downloadParcelas();
+      await _downloadService.downloadArboles();
 
       // FASE 2: SUBIR cambios locales al servidor (Push)
       _logger.i('⬆️ Subiendo cambios locales...');
 
-      // 2.1 Sincronizar Especies
-      final especiesResult = await _syncEspecies();
+      final especiesResult = await _uploadService.syncEspecies();
       totalSynced += especiesResult.synced;
       totalFailed += especiesResult.failed;
       if (!especiesResult.success) errors.add(especiesResult.message);
 
-      // 2.2 Sincronizar Parcelas
-      final parcelasResult = await _syncParcelas();
+      final parcelasResult = await _uploadService.syncParcelas();
       totalSynced += parcelasResult.synced;
       totalFailed += parcelasResult.failed;
       if (!parcelasResult.success) errors.add(parcelasResult.message);
 
-      // 2.3 Sincronizar Árboles
-      final arbolesResult = await _syncArboles();
+      final arbolesResult = await _uploadService.syncArboles();
       totalSynced += arbolesResult.synced;
       totalFailed += arbolesResult.failed;
       if (!arbolesResult.success) errors.add(arbolesResult.message);
 
-      // 2.4 Sincronizar Fotos
-      final fotosResult = await _syncFotos();
+      final fotosResult = await _uploadService.syncFotos();
       totalSynced += fotosResult.synced;
       totalFailed += fotosResult.failed;
       if (!fotosResult.success) errors.add(fotosResult.message);
@@ -219,431 +232,6 @@ class SyncService extends ChangeNotifier {
     }
   }
 
-  /// Sincronizar Especies
-  Future<SyncResult> _syncEspecies() async {
-    try {
-      final especies = await _localDB.getEspecies(soloNoSincronizadas: true);
-      int synced = 0;
-      int failed = 0;
-
-      _logger.i('📋 Especies pendientes de sincronización: ${especies.length}');
-
-      for (final especie in especies) {
-        try {
-          _logger.d('Sincronizando especie: ${especie['nombre_cientifico']} (ID: ${especie['id']})');
-          
-          final response = await _dio.post(
-            '/api/Especies',
-            data: {
-              'nombreCientifico': especie['nombre_cientifico'],
-              'nombreComun': especie['nombre_comun'],
-              'familia': especie['familia'],
-              'descripcion': especie['descripcion'],
-            },
-          );
-
-          if (response.statusCode == 200 || response.statusCode == 201) {
-            // Obtener el ID del servidor y actualizar todos los registros relacionados
-            final serverData = response.data;
-            final String serverId = serverData['id'];
-            final String localId = especie['id'];
-            
-            _logger.i('✅ Especie sincronizada - Local: $localId → Server: $serverId');
-            
-            // Si los IDs son diferentes, actualizar referencias
-            if (serverId != localId) {
-              _logger.d('Actualizando referencias de especie $localId a $serverId');
-              await _localDB.actualizarReferenciaEspecieId(localId, serverId);
-            }
-            
-            await _localDB.marcarEspecieSincronizada(serverId);
-            await _localDB.registrarSyncLog(
-              tabla: 'especies',
-              registroId: serverId,
-              operacion: 'CREATE',
-              exito: true,
-            );
-            synced++;
-          }
-        } catch (e) {
-          _logger.w('Error sincronizando especie ${especie['id']}: $e');
-          await _localDB.registrarSyncLog(
-            tabla: 'especies',
-            registroId: especie['id'],
-            operacion: 'CREATE',
-            exito: false,
-            mensaje: e.toString(),
-          );
-          failed++;
-        }
-      }
-
-      return SyncResult(
-        success: failed == 0,
-        message: 'Especies: $synced sincronizadas, $failed fallidas',
-        synced: synced,
-        failed: failed,
-      );
-    } catch (e) {
-      return SyncResult(
-        success: false,
-        message: 'Error sincronizando especies: $e',
-        synced: 0,
-        failed: 0,
-      );
-    }
-  }
-
-  /// Sincronizar Parcelas
-  Future<SyncResult> _syncParcelas() async {
-    try {
-      final parcelas = await _localDB.getParcelas(soloNoSincronizadas: true);
-      int synced = 0;
-      int failed = 0;
-
-      _logger.i('📋 Parcelas pendientes de sincronización: ${parcelas.length}');
-
-      // Obtener el ID del usuario autenticado desde el token
-      final userId = await _getUserIdFromToken();
-      if (userId == null) {
-        _logger.w('No se pudo obtener userId, no se pueden sincronizar parcelas');
-        return SyncResult(
-          success: false,
-          message: 'Usuario no autenticado',
-          synced: 0,
-          failed: parcelas.length,
-        );
-      }
-
-      for (final parcela in parcelas) {
-        try {
-          _logger.d('Sincronizando parcela: ${parcela['codigo']} (ID: ${parcela['id']})');
-          
-          // Preparar datos según CreateParcelaDto del backend
-          final data = {
-            'codigo': parcela['codigo'] ?? '',
-            'nombre': parcela['codigo'] ?? 'Parcela ${parcela['id']}', // Usar código como nombre si no hay nombre
-            'latitud': parcela['latitud'] ?? 0.0,
-            'longitud': parcela['longitud'] ?? 0.0,
-            'area': parcela['area'] ?? 0.0,
-            'usuarioCreadorId': userId,
-          };
-
-          // Agregar campos opcionales solo si existen
-          if (parcela['altitud'] != null) {
-            data['altitud'] = parcela['altitud'];
-          }
-          if (parcela['descripcion'] != null && parcela['descripcion'].toString().isNotEmpty) {
-            data['descripcion'] = parcela['descripcion'];
-          }
-          if (parcela['ubicacion'] != null && parcela['ubicacion'].toString().isNotEmpty) {
-            data['ubicacion'] = parcela['ubicacion'];
-          }
-
-          final response = await _dio.post('/api/Parcelas', data: data);
-
-          if (response.statusCode == 200 || response.statusCode == 201) {
-            // Obtener el ID del servidor y actualizar todos los registros relacionados
-            final serverData = response.data;
-            final String serverId = serverData['id'];
-            final String localId = parcela['id'];
-            
-            _logger.i('✅ Parcela sincronizada - Local: $localId → Server: $serverId');
-            
-            // Si los IDs son diferentes, actualizar referencias en árboles
-            if (serverId != localId) {
-              _logger.d('Actualizando referencias de parcela $localId a $serverId');
-              await _localDB.actualizarReferenciaParcelaId(localId, serverId);
-            }
-            
-            await _localDB.marcarParcelaSincronizada(serverId);
-            await _localDB.registrarSyncLog(
-              tabla: 'parcelas',
-              registroId: serverId,
-              operacion: 'CREATE',
-              exito: true,
-            );
-            synced++;
-          }
-        } catch (e) {
-          _logger.w('Error sincronizando parcela ${parcela['id']}: $e');
-          await _localDB.registrarSyncLog(
-            tabla: 'parcelas',
-            registroId: parcela['id'],
-            operacion: 'CREATE',
-            exito: false,
-            mensaje: e.toString(),
-          );
-          failed++;
-        }
-      }
-
-      return SyncResult(
-        success: failed == 0,
-        message: 'Parcelas: $synced sincronizadas, $failed fallidas',
-        synced: synced,
-        failed: failed,
-      );
-    } catch (e) {
-      return SyncResult(
-        success: false,
-        message: 'Error sincronizando parcelas: $e',
-        synced: 0,
-        failed: 0,
-      );
-    }
-  }
-
-  /// Sincronizar Árboles
-  Future<SyncResult> _syncArboles() async {
-    try {
-      final arboles = await _localDB.getArboles(soloNoSincronizados: true);
-      int synced = 0;
-      int failed = 0;
-
-      _logger.i('📋 Árboles pendientes de sincronización: ${arboles.length}');
-
-      for (final arbol in arboles) {
-        try {
-          _logger.d('Sincronizando árbol ID: ${arbol['id']}, Especie: ${arbol['especie_id']}, Parcela: ${arbol['parcela_id']}');
-          
-          final response = await _dio.post(
-            '/api/Arboles',
-            data: {
-              'numeroArbol': arbol['numero_arbol'] ?? 1,
-              'parcelaId': arbol['parcela_id'],
-              'especieId': arbol['especie_id'],
-              'latitud': arbol['latitud'],
-              'longitud': arbol['longitud'],
-              'altura': arbol['altura'],
-              'diametro': arbol['dap'], // Backend espera 'diametro' no 'dap'
-              'nombreLocal': arbol['observaciones'], // Usamos observaciones como nombreLocal
-              'descripcion': arbol['observaciones'], // También como descripción
-            },
-          );
-
-          if (response.statusCode == 200 || response.statusCode == 201) {
-            await _localDB.marcarArbolSincronizado(arbol['id']);
-            await _localDB.registrarSyncLog(
-              tabla: 'arboles',
-              registroId: arbol['id'],
-              operacion: 'CREATE',
-              exito: true,
-            );
-            synced++;
-          }
-        } catch (e) {
-          _logger.w('Error sincronizando árbol ${arbol['id']}: $e');
-          await _localDB.registrarSyncLog(
-            tabla: 'arboles',
-            registroId: arbol['id'],
-            operacion: 'CREATE',
-            exito: false,
-            mensaje: e.toString(),
-          );
-          failed++;
-        }
-      }
-
-      return SyncResult(
-        success: failed == 0,
-        message: 'Árboles: $synced sincronizados, $failed fallidos',
-        synced: synced,
-        failed: failed,
-      );
-    } catch (e) {
-      return SyncResult(
-        success: false,
-        message: 'Error sincronizando árboles: $e',
-        synced: 0,
-        failed: 0,
-      );
-    }
-  }
-
-  /// Sincronizar Fotos
-  Future<SyncResult> _syncFotos() async {
-    try {
-      final fotos = await _localDB.getFotos(soloNoSincronizadas: true);
-      int synced = 0;
-      int failed = 0;
-
-      for (final foto in fotos) {
-        try {
-          final file = File(foto['ruta_local']);
-          if (!await file.exists()) {
-            _logger.w('Archivo de foto no existe: ${foto['ruta_local']}');
-            failed++;
-            continue;
-          }
-
-          final formData = FormData.fromMap({
-            'file': await MultipartFile.fromFile(
-              foto['ruta_local'],
-              filename: file.path.split('/').last,
-            ),
-            'arbolId': foto['arbol_id'],
-            'parcelaId': foto['parcela_id'],
-            'descripcion': foto['descripcion'],
-            'tipo': foto['tipo'],
-          });
-
-          final response = await _dio.post('/api/Fotos', data: formData);
-
-          if (response.statusCode == 200 || response.statusCode == 201) {
-            final rutaRemota = response.data['ruta'] ?? response.data['url'];
-            await _localDB.marcarFotoSincronizada(foto['id'], rutaRemota);
-            await _localDB.registrarSyncLog(
-              tabla: 'fotos',
-              registroId: foto['id'],
-              operacion: 'UPLOAD',
-              exito: true,
-            );
-            synced++;
-          }
-        } catch (e) {
-          _logger.w('Error sincronizando foto ${foto['id']}: $e');
-          await _localDB.registrarSyncLog(
-            tabla: 'fotos',
-            registroId: foto['id'],
-            operacion: 'UPLOAD',
-            exito: false,
-            mensaje: e.toString(),
-          );
-          failed++;
-        }
-      }
-
-      return SyncResult(
-        success: failed == 0,
-        message: 'Fotos: $synced sincronizadas, $failed fallidas',
-        synced: synced,
-        failed: failed,
-      );
-    } catch (e) {
-      return SyncResult(
-        success: false,
-        message: 'Error sincronizando fotos: $e',
-        synced: 0,
-        failed: 0,
-      );
-    }
-  }
-
-  /// Extrae el userId del token JWT
-  Future<String?> _getUserIdFromToken() async {
-    try {
-      final token = await _apiService.getToken();
-      if (token == null) return null;
-
-      // Decodificar JWT (formato: header.payload.signature)
-      final parts = token.split('.');
-      if (parts.length != 3) return null;
-
-      // Decodificar el payload (segunda parte)
-      final payload = parts[1];
-      // Normalizar base64 padding
-      var normalized = base64Url.normalize(payload);
-      final decoded = utf8.decode(base64Url.decode(normalized));
-      final payloadMap = json.decode(decoded) as Map<String, dynamic>;
-
-      // El backend usa "UserId" (con mayúscula) en el claim
-      return payloadMap['UserId'] as String?;
-    } catch (e) {
-      _logger.e('Error extrayendo userId del token: $e');
-      return null;
-    }
-  }
-
-  // === MÉTODOS DE DESCARGA (PULL) ===
-
-  /// Descargar especies del servidor
-  Future<void> _downloadEspecies() async {
-    try {
-      final response = await _dio.get('/api/Especies');
-      if (response.statusCode == 200) {
-        final List<dynamic> especies = response.data;
-        _logger.i('⬇️ Descargando ${especies.length} especies del servidor');
-        
-        for (final especie in especies) {
-          await _localDB.insertEspecie({
-            'id': especie['id'],
-            'nombre_cientifico': especie['nombreCientifico'],
-            'nombre_comun': especie['nombreComun'],
-            'familia': especie['familia'],
-            'descripcion': especie['descripcion'],
-            'sincronizado': 1,
-            'activo': 1,
-            'fecha_creacion': especie['fechaCreacion'] ?? DateTime.now().toIso8601String(),
-          });
-        }
-      }
-    } catch (e) {
-      _logger.w('Error descargando especies: $e');
-    }
-  }
-
-  /// Descargar parcelas del servidor
-  Future<void> _downloadParcelas() async {
-    try {
-      final response = await _dio.get('/api/Parcelas');
-      if (response.statusCode == 200) {
-        final List<dynamic> parcelas = response.data;
-        _logger.i('⬇️ Descargando ${parcelas.length} parcelas del servidor');
-        
-        for (final parcela in parcelas) {
-          await _localDB.insertParcela({
-            'id': parcela['id'],
-            'codigo': parcela['codigo'],
-            'nombre': parcela['nombre'],
-            'latitud': parcela['latitud'],
-            'longitud': parcela['longitud'],
-            'altitud': parcela['altitud'],
-            'area': parcela['area'] ?? 0.0,
-            'descripcion': parcela['descripcion'],
-            'ubicacion': parcela['ubicacion'],
-            'sincronizado': 1,
-            'activo': 1,
-            'fecha_creacion': parcela['fechaCreacion'] ?? DateTime.now().toIso8601String(),
-          });
-        }
-      }
-    } catch (e) {
-      _logger.w('Error descargando parcelas: $e');
-    }
-  }
-
-  /// Descargar árboles del servidor
-  Future<void> _downloadArboles() async {
-    try {
-      final response = await _dio.get('/api/Arboles');
-      if (response.statusCode == 200) {
-        final List<dynamic> arboles = response.data;
-        _logger.i('⬇️ Descargando ${arboles.length} árboles del servidor');
-        
-        for (final arbol in arboles) {
-          await _localDB.insertArbol({
-            'id': arbol['id'],
-            'numero_arbol': arbol['numeroArbol'] ?? 0,
-            'parcela_id': arbol['parcelaId'],
-            'especie_id': arbol['especieId'],
-            'latitud': arbol['latitud'],
-            'longitud': arbol['longitud'],
-            'altura': arbol['altura'] ?? 0.0,
-            'dap': arbol['diametro'] ?? 0.0,
-            'observaciones': arbol['descripcion'],
-            'sincronizado': 1,
-            'activo': 1,
-            'fecha_creacion': arbol['fechaCreacion'] ?? DateTime.now().toIso8601String(),
-            'fecha_actualizacion': DateTime.now().toIso8601String(),
-          });
-        }
-      }
-    } catch (e) {
-      _logger.w('Error descargando árboles: $e');
-    }
-  }
-
   @override
   void dispose() {
     _autoSyncTimer?.cancel();
@@ -651,19 +239,4 @@ class SyncService extends ChangeNotifier {
     _connectivityService.removeListener(_onConnectivityChanged);
     super.dispose();
   }
-}
-
-/// Resultado de una operación de sincronización
-class SyncResult {
-  final bool success;
-  final String message;
-  final int synced;
-  final int failed;
-
-  SyncResult({
-    required this.success,
-    required this.message,
-    required this.synced,
-    required this.failed,
-  });
 }

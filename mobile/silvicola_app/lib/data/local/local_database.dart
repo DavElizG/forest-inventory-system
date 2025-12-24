@@ -450,4 +450,25 @@ class LocalDatabase {
     final db = await database;
     await db.delete('arboles', where: 'sincronizado = 0');
   }
+
+  /// Eliminar árboles con referencias inválidas (IDs de especies/parcelas que no existen)
+  Future<int> eliminarArbolesConReferenciasInvalidas() async {
+    final db = await database;
+    
+    // Eliminar árboles cuya especie no existe
+    final arbolesEspecieInvalida = await db.rawDelete('''
+      DELETE FROM arboles 
+      WHERE especie_id NOT IN (SELECT id FROM especies)
+    ''');
+    
+    // Eliminar árboles cuya parcela no existe
+    final arbolesParcelaInvalida = await db.rawDelete('''
+      DELETE FROM arboles 
+      WHERE parcela_id NOT IN (SELECT id FROM parcelas)
+    ''');
+    
+    final total = arbolesEspecieInvalida + arbolesParcelaInvalida;
+    print('🗑️ Eliminados $total árboles con referencias inválidas');
+    return total;
+  }
 }

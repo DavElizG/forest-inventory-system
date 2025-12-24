@@ -54,7 +54,7 @@ class GpsSection extends StatelessWidget {
           label: Text(isCapturing ? 'Capturando ubicación...' : 'Capturar Ubicación GPS'),
           style: ElevatedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 16),
-            backgroundColor: Colors.blue,
+            backgroundColor: Colors.green,
             foregroundColor: Colors.white,
           ),
         ),
