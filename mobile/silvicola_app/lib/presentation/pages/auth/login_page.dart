@@ -3,6 +3,10 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../../core/utils/error_helper.dart';
 import '../../../core/widgets/connectivity_widgets.dart';
+import '../../../data/services/sync_service.dart';
+import '../../providers/parcela_provider.dart';
+import '../../providers/especie_provider.dart';
+import '../../providers/arbol_provider.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -29,7 +33,11 @@ class _LoginPageState extends State<LoginPage> {
     final success = await authProvider.tryAutoLogin();
     
     if (success && mounted) {
-      Navigator.of(context).pushReplacementNamed('/home');
+      // Sincronizar datos del servidor y recargar listas
+      await _syncAndRefreshData();
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed('/home');
+      }
     }
   }
 
@@ -56,12 +64,36 @@ class _LoginPageState extends State<LoginPage> {
     if (!mounted) return;
 
     if (success) {
-      Navigator.of(context).pushReplacementNamed('/home');
+      // Sincronizar datos del servidor y recargar listas
+      await _syncAndRefreshData();
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed('/home');
+      }
     } else {
       ErrorHelper.showError(
         context,
         authProvider.errorMessage ?? 'Error al iniciar sesión',
       );
+    }
+  }
+
+  /// Sincronizar datos y recargar providers
+  Future<void> _syncAndRefreshData() async {
+    try {
+      // 1. Ejecutar sincronización (descarga datos del servidor)
+      final syncService = context.read<SyncService>();
+      await syncService.syncAll();
+      
+      // 2. Recargar todos los providers
+      if (mounted) {
+        await Future.wait([
+          context.read<EspecieProvider>().fetchEspecies(),
+          context.read<ParcelaProvider>().fetchParcelas(),
+          context.read<ArbolProvider>().fetchArboles(),
+        ]);
+      }
+    } catch (e) {
+      print('Error en sync inicial: $e');
     }
   }
 
