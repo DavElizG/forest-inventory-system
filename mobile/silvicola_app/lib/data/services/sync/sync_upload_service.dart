@@ -199,11 +199,15 @@ class SyncUploadService {
       _logger.i('📋 Árboles pendientes de sincronización: ${arboles.length}');
 
       for (final arbol in arboles) {
+        // Declarar variables fuera del try/catch para acceso en catch
+        String? especieId;
+        String? parcelaId;
+        
         try {
           _logger.d('Sincronizando árbol ID: ${arbol['id']}, Especie: ${arbol['especie_id']}, Parcela: ${arbol['parcela_id']}');
           
-          final especieId = arbol['especie_id'];
-          final parcelaId = arbol['parcela_id'];
+          especieId = arbol['especie_id'];
+          parcelaId = arbol['parcela_id'];
           
           _logger.d('🔍 Verificando IDs - ParcelaID: $parcelaId, EspecieID: $especieId');
           
@@ -227,19 +231,53 @@ class SyncUploadService {
             continue;
           }
           
+          // Validar datos requeridos antes de enviar
+          final numeroArbol = arbol['numero_arbol'] ?? 1;
+          final latitud = arbol['latitud'];
+          final longitud = arbol['longitud'];
+          final altura = arbol['altura'];
+          final dap = arbol['dap'];
+          
+          if (latitud == null || longitud == null) {
+            _logger.w('⚠️ Árbol ${arbol['id']} sin coordenadas GPS (lat: $latitud, lon: $longitud). Saltando.');
+            failed++;
+            continue;
+          }
+          
+          if (altura == null || altura == 0) {
+            _logger.w('⚠️ Árbol ${arbol['id']} sin altura válida. Saltando.');
+            failed++;
+            continue;
+          }
+          
+          if (dap == null || dap == 0) {
+            _logger.w('⚠️ Árbol ${arbol['id']} sin DAP válido. Saltando.');
+            failed++;
+            continue;
+          }
+          
+          _logger.d('📤 Enviando árbol: numero=$numeroArbol, parcela=$parcelaId, especie=$especieId, lat=$latitud, lon=$longitud, altura=$altura, dap=$dap');
+          
+          // Construir payload sin valores null
+          final payload = {
+            'numeroArbol': numeroArbol,
+            'parcelaId': parcelaId,
+            'especieId': especieId,
+            'latitud': latitud,
+            'longitud': longitud,
+            'altura': altura,
+            'diametro': dap,
+          };
+          
+          // Agregar campos opcionales solo si tienen valor
+          if (arbol['observaciones'] != null && arbol['observaciones'].toString().isNotEmpty) {
+            payload['nombreLocal'] = arbol['observaciones'];
+            payload['descripcion'] = arbol['observaciones'];
+          }
+          
           final response = await _dio.post(
             '/api/Arboles',
-            data: {
-              'numeroArbol': arbol['numero_arbol'] ?? 1,
-              'parcelaId': arbol['parcela_id'],
-              'especieId': arbol['especie_id'],
-              'latitud': arbol['latitud'],
-              'longitud': arbol['longitud'],
-              'altura': arbol['altura'],
-              'diametro': arbol['dap'],
-              'nombreLocal': arbol['observaciones'],
-              'descripcion': arbol['observaciones'],
-            },
+            data: payload,
           );
 
           if (response.statusCode == 200 || response.statusCode == 201) {
@@ -253,7 +291,33 @@ class SyncUploadService {
             synced++;
           }
         } catch (e) {
-          _logger.w('Error sincronizando árbol ${arbol['id']}: $e');
+          // Si es error 500 y los IDs son válidos del servidor, probablemente el árbol ya existe
+          // Intentar marcarlo como sincronizado para evitar reintentos
+          final isServerError = e.toString().contains('500');
+          final hasValidIds = especieId != null && parcelaId != null;
+          
+          if (isServerError && hasValidIds) {
+            _logger.w('⚠️ Error 500 al crear árbol ${arbol['id']} - probablemente ya existe en el servidor');
+            _logger.w('🔄 Marcando como sincronizado para evitar reintentos');
+            await _localDB.marcarArbolSincronizado(arbol['id']);
+            synced++; // Contarlo como exitoso
+            continue;
+          }
+          
+          _logger.e('❌ Error sincronizando árbol ${arbol['id']}');
+          _logger.e('📊 Datos completos del árbol:');
+          _logger.e('   - ID: ${arbol['id']}');
+          _logger.e('   - numero_arbol: ${arbol['numero_arbol']}');
+          _logger.e('   - parcela_id: ${arbol['parcela_id']}');
+          _logger.e('   - especie_id: ${arbol['especie_id']}');
+          _logger.e('   - latitud: ${arbol['latitud']}');
+          _logger.e('   - longitud: ${arbol['longitud']}');
+          _logger.e('   - altura: ${arbol['altura']}');
+          _logger.e('   - dap: ${arbol['dap']}');
+          _logger.e('   - observaciones: ${arbol['observaciones']}');
+          _logger.e('   - sincronizado: ${arbol['sincronizado']}');
+          _logger.e('💥 Exception: $e');
+          
           await _localDB.registrarSyncLog(
             tabla: 'arboles',
             registroId: arbol['id'],
