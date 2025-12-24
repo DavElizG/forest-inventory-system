@@ -29,12 +29,16 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _tryAutoLogin() async {
+    print('[LOGIN] 🔍 Intentando auto-login...');
     final authProvider = context.read<AuthProvider>();
     final success = await authProvider.tryAutoLogin();
+    print('[LOGIN] 🎯 Auto-login result: $success');
     
     if (success && mounted) {
+      print('[LOGIN] ✅ Auto-login exitoso, sincronizando...');
       // Sincronizar datos del servidor y recargar listas
       await _syncAndRefreshData();
+      print('[LOGIN] ✅ Sync completado en auto-login, navegando...');
       if (mounted) {
         Navigator.of(context).pushReplacementNamed('/home');
       }
@@ -64,8 +68,10 @@ class _LoginPageState extends State<LoginPage> {
     if (!mounted) return;
 
     if (success) {
+      print('[LOGIN] 🔄 Iniciando sincronización de datos...');
       // Sincronizar datos del servidor y recargar listas
       await _syncAndRefreshData();
+      print('[LOGIN] ✅ Sincronización completada, navegando a home');
       if (mounted) {
         Navigator.of(context).pushReplacementNamed('/home');
       }
@@ -79,21 +85,27 @@ class _LoginPageState extends State<LoginPage> {
 
   /// Sincronizar datos y recargar providers
   Future<void> _syncAndRefreshData() async {
+    print('[LOGIN] 🔧 Entrando a _syncAndRefreshData()');
     try {
       // 1. Ejecutar sincronización (descarga datos del servidor)
+      print('[LOGIN] 📡 Obteniendo SyncService...');
       final syncService = context.read<SyncService>();
+      print('[LOGIN] 📥 Llamando a syncAll()...');
       await syncService.syncAll();
+      print('[LOGIN] ✅ syncAll() completado');
       
       // 2. Recargar todos los providers
       if (mounted) {
+        print('[LOGIN] 🔄 Recargando providers...');
         await Future.wait([
           context.read<EspecieProvider>().fetchEspecies(),
           context.read<ParcelaProvider>().fetchParcelas(),
           context.read<ArbolProvider>().fetchArboles(),
         ]);
+        print('[LOGIN] ✅ Providers recargados');
       }
     } catch (e) {
-      print('Error en sync inicial: $e');
+      print('[LOGIN] ❌ Error en sync inicial: $e');
     }
   }
 
