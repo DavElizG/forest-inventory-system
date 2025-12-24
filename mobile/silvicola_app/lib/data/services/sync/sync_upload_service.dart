@@ -198,6 +198,20 @@ class SyncUploadService {
 
       _logger.i('📋 Árboles pendientes de sincronización: ${arboles.length}');
 
+      // Obtener el ID del usuario autenticado desde el token
+      final userId = await _getUserIdFromToken();
+      _logger.i('🔑 UserId extraído del token: $userId');
+      if (userId == null) {
+        _logger.w('No se pudo obtener userId, no se pueden sincronizar árboles');
+        return SyncResult(
+          success: false,
+          message: 'Usuario no autenticado',
+          synced: 0,
+          failed: arboles.length,
+        );
+      }
+      _logger.i('✅ UserId válido, procediendo con sincronización de árboles');
+
       for (final arbol in arboles) {
         // Declarar variables fuera del try/catch para acceso en catch
         String? especieId;
@@ -263,6 +277,7 @@ class SyncUploadService {
             'numeroArbol': numeroArbol,
             'parcelaId': parcelaId,
             'especieId': especieId,
+            'usuarioCreadorId': userId,  // CRÍTICO: userId del usuario autenticado
             'latitud': latitud,
             'longitud': longitud,
             'altura': altura,
@@ -276,6 +291,7 @@ class SyncUploadService {
           }
           
           _logger.d('📦 Payload completo: $payload');
+          _logger.i('🔍 VERIFICACIÓN - usuarioCreadorId en payload: "${payload['usuarioCreadorId']}"');
           
           final response = await _dio.post(
             '/api/Arboles',
@@ -437,17 +453,33 @@ class SyncUploadService {
   Future<String?> _getUserIdFromToken() async {
     try {
       final token = await _apiService.getToken();
-      if (token == null) return null;
+      if (token == null) {
+        _logger.w('❌ Token es null');
+        return null;
+      }
 
       final parts = token.split('.');
-      if (parts.length != 3) return null;
+      if (parts.length != 3) {
+        _logger.w('❌ Token no tiene 3 partes');
+        return null;
+      }
 
       final payload = parts[1];
       var normalized = base64Url.normalize(payload);
       final decoded = utf8.decode(base64Url.decode(normalized));
       final payloadMap = json.decode(decoded) as Map<String, dynamic>;
+      
+      _logger.i('🔍 JWT Payload completo: $payloadMap');
+      _logger.i('🔑 Claves disponibles en JWT: ${payloadMap.keys.toList()}');
 
-      return payloadMap['UserId'] as String?;
+      // Intentar diferentes variaciones del claim
+      final userId = payloadMap['UserId'] as String? ?? 
+                     payloadMap['userId'] as String? ?? 
+                     payloadMap['sub'] as String? ??
+                     payloadMap['nameid'] as String?;
+      
+      _logger.i('✅ UserId extraído: $userId');
+      return userId;
     } catch (e) {
       _logger.e('Error extrayendo userId del token: $e');
       return null;
