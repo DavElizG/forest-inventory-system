@@ -275,6 +275,8 @@ class SyncUploadService {
             payload['descripcion'] = arbol['observaciones'];
           }
           
+          _logger.d('📦 Payload completo: $payload');
+          
           final response = await _dio.post(
             '/api/Arboles',
             data: payload,
@@ -291,32 +293,49 @@ class SyncUploadService {
             synced++;
           }
         } catch (e) {
-          // Si es error 500 y los IDs son válidos del servidor, probablemente el árbol ya existe
-          // Intentar marcarlo como sincronizado para evitar reintentos
-          final isServerError = e.toString().contains('500');
-          final hasValidIds = especieId != null && parcelaId != null;
-          
-          if (isServerError && hasValidIds) {
-            _logger.w('⚠️ Error 500 al crear árbol ${arbol['id']} - probablemente ya existe en el servidor');
-            _logger.w('🔄 Marcando como sincronizado para evitar reintentos');
-            await _localDB.marcarArbolSincronizado(arbol['id']);
-            synced++; // Contarlo como exitoso
-            continue;
-          }
-          
+          // Logging detallado del error
           _logger.e('❌ Error sincronizando árbol ${arbol['id']}');
-          _logger.e('📊 Datos completos del árbol:');
-          _logger.e('   - ID: ${arbol['id']}');
-          _logger.e('   - numero_arbol: ${arbol['numero_arbol']}');
-          _logger.e('   - parcela_id: ${arbol['parcela_id']}');
-          _logger.e('   - especie_id: ${arbol['especie_id']}');
-          _logger.e('   - latitud: ${arbol['latitud']}');
-          _logger.e('   - longitud: ${arbol['longitud']}');
-          _logger.e('   - altura: ${arbol['altura']}');
-          _logger.e('   - dap: ${arbol['dap']}');
-          _logger.e('   - observaciones: ${arbol['observaciones']}');
-          _logger.e('   - sincronizado: ${arbol['sincronizado']}');
-          _logger.e('💥 Exception: $e');
+          _logger.e('📊 Datos del árbol:');
+          _logger.e('   numeroArbol: ${arbol['numero_arbol']}');
+          _logger.e('   parcelaId: $parcelaId');
+          _logger.e('   especieId: $especieId');
+          _logger.e('   latitud: ${arbol['latitud']}');
+          _logger.e('   longitud: ${arbol['longitud']}');
+          _logger.e('   altura: ${arbol['altura']}');
+          _logger.e('   dap: ${arbol['dap']}');
+          _logger.e('💥 Error: $e');
+          
+          // Si es error 500, verificar si el árbol ya existe en el servidor
+          final isServerError = e.toString().contains('500');
+          
+          if (isServerError && especieId != null && parcelaId != null) {
+            try {
+              // Intentar obtener árboles de la parcela para verificar si ya existe
+              _logger.w('🔍 Verificando si el árbol ya existe en el servidor...');
+              final checkResponse = await _dio.get('/api/Arboles?parcelaId=$parcelaId');
+              
+              if (checkResponse.statusCode == 200) {
+                final List<dynamic> arbolesServidor = checkResponse.data;
+                final numeroArbol = arbol['numero_arbol'] ?? 1;
+                
+                // Buscar si existe un árbol con el mismo número en la parcela
+                final existe = arbolesServidor.any((a) => 
+                  a['numeroArbol'] == numeroArbol && a['parcelaId'] == parcelaId
+                );
+                
+                if (existe) {
+                  _logger.w('✅ El árbol SÍ existe en el servidor - marcando como sincronizado');
+                  await _localDB.marcarArbolSincronizado(arbol['id']);
+                  synced++;
+                  continue;
+                } else {
+                  _logger.e('❌ El árbol NO existe en el servidor - error real del backend');
+                }
+              }
+            } catch (checkError) {
+              _logger.e('Error verificando existencia: $checkError');
+            }
+          }
           
           await _localDB.registrarSyncLog(
             tabla: 'arboles',
