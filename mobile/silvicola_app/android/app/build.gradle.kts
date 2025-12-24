@@ -44,15 +44,11 @@ android {
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
         }
-    }
-
-    // Separar ABIs para reducir tamaño por arquitectura
-    splits {
-        abi {
-            isEnable = true
-            reset()
-            include("arm64-v8a", "armeabi-v7a")
-            isUniversalApk = false
+        
+        // Desactivar optimizaciones en debug para compilación más rápida
+        debug {
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }
