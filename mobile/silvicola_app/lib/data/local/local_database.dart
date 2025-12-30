@@ -32,12 +32,15 @@ class LocalDatabase {
   Future<void> _upgradeDB(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
       // Agregar columna activo a especies
-      await db.execute('ALTER TABLE especies ADD COLUMN activo INTEGER DEFAULT 1');
+      await db
+          .execute('ALTER TABLE especies ADD COLUMN activo INTEGER DEFAULT 1');
       // Agregar columna activo a arboles
-      await db.execute('ALTER TABLE arboles ADD COLUMN activo INTEGER DEFAULT 1');
+      await db
+          .execute('ALTER TABLE arboles ADD COLUMN activo INTEGER DEFAULT 1');
       // Agregar columna activo a parcelas si no existe
       try {
-        await db.execute('ALTER TABLE parcelas ADD COLUMN activo INTEGER DEFAULT 1');
+        await db.execute(
+            'ALTER TABLE parcelas ADD COLUMN activo INTEGER DEFAULT 1');
       } catch (e) {
         // La columna puede existir ya, ignorar error
       }
@@ -141,38 +144,54 @@ class LocalDatabase {
     // Índices para optimizar búsquedas
     await db.execute('CREATE INDEX idx_arboles_parcela ON arboles(parcela_id)');
     await db.execute('CREATE INDEX idx_arboles_especie ON arboles(especie_id)');
-    await db.execute('CREATE INDEX idx_arboles_sincronizado ON arboles(sincronizado)');
-    await db.execute('CREATE INDEX idx_parcelas_sincronizado ON parcelas(sincronizado)');
+    await db.execute(
+        'CREATE INDEX idx_arboles_sincronizado ON arboles(sincronizado)');
+    await db.execute('CREATE INDEX idx_arboles_activo ON arboles(activo)');
+    await db.execute(
+        'CREATE INDEX idx_arboles_numero ON arboles(numero_arbol, parcela_id)');
+    await db.execute(
+        'CREATE INDEX idx_parcelas_sincronizado ON parcelas(sincronizado)');
+    await db.execute('CREATE INDEX idx_parcelas_activo ON parcelas(activo)');
+    await db.execute('CREATE INDEX idx_parcelas_codigo ON parcelas(codigo)');
+    await db.execute(
+        'CREATE INDEX idx_especies_sincronizado ON especies(sincronizado)');
+    await db.execute('CREATE INDEX idx_especies_activo ON especies(activo)');
     await db.execute('CREATE INDEX idx_fotos_arbol ON fotos(arbol_id)');
-    await db.execute('CREATE INDEX idx_fotos_sincronizado ON fotos(sincronizado)');
+    await db
+        .execute('CREATE INDEX idx_fotos_sincronizado ON fotos(sincronizado)');
   }
 
   // === OPERACIONES CRUD PARA PARCELAS ===
 
   Future<String> insertParcela(Map<String, dynamic> parcela) async {
     final db = await database;
-    await db.insert('parcelas', parcela, conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert('parcelas', parcela,
+        conflictAlgorithm: ConflictAlgorithm.replace);
     return parcela['id'];
   }
 
-  Future<List<Map<String, dynamic>>> getParcelas({bool soloNoSincronizadas = false}) async {
+  Future<List<Map<String, dynamic>>> getParcelas(
+      {bool soloNoSincronizadas = false}) async {
     final db = await database;
     if (soloNoSincronizadas) {
-      return await db.query('parcelas', where: 'sincronizado = ?', whereArgs: [0]);
+      return await db
+          .query('parcelas', where: 'sincronizado = ?', whereArgs: [0]);
     }
     return await db.query('parcelas', orderBy: 'fecha_creacion DESC');
   }
 
   Future<Map<String, dynamic>?> getParcelaById(String id) async {
     final db = await database;
-    final results = await db.query('parcelas', where: 'id = ?', whereArgs: [id]);
+    final results =
+        await db.query('parcelas', where: 'id = ?', whereArgs: [id]);
     return results.isNotEmpty ? results.first : null;
   }
 
   Future<int> updateParcela(String id, Map<String, dynamic> parcela) async {
     final db = await database;
     parcela['sincronizado'] = 0; // Marcar como no sincronizado
-    return await db.update('parcelas', parcela, where: 'id = ?', whereArgs: [id]);
+    return await db
+        .update('parcelas', parcela, where: 'id = ?', whereArgs: [id]);
   }
 
   Future<int> deleteParcela(String id) async {
@@ -182,35 +201,41 @@ class LocalDatabase {
 
   Future<void> marcarParcelaSincronizada(String id) async {
     final db = await database;
-    await db.update('parcelas', {'sincronizado': 1}, where: 'id = ?', whereArgs: [id]);
+    await db.update('parcelas', {'sincronizado': 1},
+        where: 'id = ?', whereArgs: [id]);
   }
 
   // === OPERACIONES CRUD PARA ESPECIES ===
 
   Future<String> insertEspecie(Map<String, dynamic> especie) async {
     final db = await database;
-    await db.insert('especies', especie, conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert('especies', especie,
+        conflictAlgorithm: ConflictAlgorithm.replace);
     return especie['id'];
   }
 
-  Future<List<Map<String, dynamic>>> getEspecies({bool soloNoSincronizadas = false}) async {
+  Future<List<Map<String, dynamic>>> getEspecies(
+      {bool soloNoSincronizadas = false}) async {
     final db = await database;
     if (soloNoSincronizadas) {
-      return await db.query('especies', where: 'sincronizado = ?', whereArgs: [0]);
+      return await db
+          .query('especies', where: 'sincronizado = ?', whereArgs: [0]);
     }
     return await db.query('especies', orderBy: 'nombre_cientifico ASC');
   }
 
   Future<Map<String, dynamic>?> getEspecieById(String id) async {
     final db = await database;
-    final results = await db.query('especies', where: 'id = ?', whereArgs: [id]);
+    final results =
+        await db.query('especies', where: 'id = ?', whereArgs: [id]);
     return results.isNotEmpty ? results.first : null;
   }
 
   Future<int> updateEspecie(String id, Map<String, dynamic> especie) async {
     final db = await database;
     especie['sincronizado'] = 0;
-    return await db.update('especies', especie, where: 'id = ?', whereArgs: [id]);
+    return await db
+        .update('especies', especie, where: 'id = ?', whereArgs: [id]);
   }
 
   Future<int> deleteEspecie(String id) async {
@@ -220,7 +245,8 @@ class LocalDatabase {
 
   Future<void> marcarEspecieSincronizada(String id) async {
     final db = await database;
-    await db.update('especies', {'sincronizado': 1}, where: 'id = ?', whereArgs: [id]);
+    await db.update('especies', {'sincronizado': 1},
+        where: 'id = ?', whereArgs: [id]);
   }
 
   /// Actualizar el ID de una especie y todas sus referencias en árboles
@@ -233,7 +259,7 @@ class LocalDatabase {
         SET id = ?, sincronizado = 1 
         WHERE id = ?
       ''', [newId, oldId]);
-      
+
       // 2. Actualizar las referencias en árboles
       await txn.execute('''
         UPDATE arboles 
@@ -253,7 +279,7 @@ class LocalDatabase {
         SET id = ?, sincronizado = 1 
         WHERE id = ?
       ''', [newId, oldId]);
-      
+
       // 2. Actualizar las referencias en árboles
       await txn.execute('''
         UPDATE arboles 
@@ -267,7 +293,8 @@ class LocalDatabase {
 
   Future<String> insertArbol(Map<String, dynamic> arbol) async {
     final db = await database;
-    await db.insert('arboles', arbol, conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert('arboles', arbol,
+        conflictAlgorithm: ConflictAlgorithm.replace);
     return arbol['id'];
   }
 
@@ -290,7 +317,8 @@ class LocalDatabase {
       whereArgs = [0];
     }
 
-    return await db.query('arboles', where: where, whereArgs: whereArgs, orderBy: 'fecha_creacion DESC');
+    return await db.query('arboles',
+        where: where, whereArgs: whereArgs, orderBy: 'fecha_creacion DESC');
   }
 
   Future<Map<String, dynamic>?> getArbolById(String id) async {
@@ -312,14 +340,16 @@ class LocalDatabase {
 
   Future<void> marcarArbolSincronizado(String id) async {
     final db = await database;
-    await db.update('arboles', {'sincronizado': 1}, where: 'id = ?', whereArgs: [id]);
+    await db.update('arboles', {'sincronizado': 1},
+        where: 'id = ?', whereArgs: [id]);
   }
 
   // === OPERACIONES CRUD PARA FOTOS ===
 
   Future<String> insertFoto(Map<String, dynamic> foto) async {
     final db = await database;
-    await db.insert('fotos', foto, conflictAlgorithm: ConflictAlgorithm.replace);
+    await db.insert('fotos', foto,
+        conflictAlgorithm: ConflictAlgorithm.replace);
     return foto['id'];
   }
 
@@ -349,34 +379,36 @@ class LocalDatabase {
       whereArgs = [0];
     }
 
-    return await db.query('fotos', where: where, whereArgs: whereArgs, orderBy: 'fecha_captura DESC');
+    return await db.query('fotos',
+        where: where, whereArgs: whereArgs, orderBy: 'fecha_captura DESC');
   }
 
   Future<void> marcarFotoSincronizada(String id, String rutaRemota) async {
     final db = await database;
-    await db.update('fotos', {'sincronizado': 1, 'ruta_remota': rutaRemota}, where: 'id = ?', whereArgs: [id]);
+    await db.update('fotos', {'sincronizado': 1, 'ruta_remota': rutaRemota},
+        where: 'id = ?', whereArgs: [id]);
   }
 
   // === ESTADÍSTICAS Y CONTADORES ===
 
   Future<Map<String, int>> getContadoresSincronizacion() async {
     final db = await database;
-    
-    final parcelasNoSync = Sqflite.firstIntValue(
-      await db.rawQuery('SELECT COUNT(*) FROM parcelas WHERE sincronizado = 0')
-    ) ?? 0;
-    
-    final arbolesNoSync = Sqflite.firstIntValue(
-      await db.rawQuery('SELECT COUNT(*) FROM arboles WHERE sincronizado = 0')
-    ) ?? 0;
-    
-    final especiesNoSync = Sqflite.firstIntValue(
-      await db.rawQuery('SELECT COUNT(*) FROM especies WHERE sincronizado = 0')
-    ) ?? 0;
-    
-    final fotosNoSync = Sqflite.firstIntValue(
-      await db.rawQuery('SELECT COUNT(*) FROM fotos WHERE sincronizado = 0')
-    ) ?? 0;
+
+    final parcelasNoSync = Sqflite.firstIntValue(await db.rawQuery(
+            'SELECT COUNT(*) FROM parcelas WHERE sincronizado = 0')) ??
+        0;
+
+    final arbolesNoSync = Sqflite.firstIntValue(await db
+            .rawQuery('SELECT COUNT(*) FROM arboles WHERE sincronizado = 0')) ??
+        0;
+
+    final especiesNoSync = Sqflite.firstIntValue(await db.rawQuery(
+            'SELECT COUNT(*) FROM especies WHERE sincronizado = 0')) ??
+        0;
+
+    final fotosNoSync = Sqflite.firstIntValue(await db
+            .rawQuery('SELECT COUNT(*) FROM fotos WHERE sincronizado = 0')) ??
+        0;
 
     return {
       'parcelas': parcelasNoSync,
@@ -416,8 +448,9 @@ class LocalDatabase {
 
   Future<void> limpiarDatosSincronizados({int diasAntes = 30}) async {
     final db = await database;
-    final fechaLimite = DateTime.now().subtract(Duration(days: diasAntes)).toIso8601String();
-    
+    final fechaLimite =
+        DateTime.now().subtract(Duration(days: diasAntes)).toIso8601String();
+
     // Eliminar logs antiguos
     await db.delete('sync_logs', where: 'fecha < ?', whereArgs: [fechaLimite]);
   }
@@ -454,21 +487,96 @@ class LocalDatabase {
   /// Eliminar árboles con referencias inválidas (IDs de especies/parcelas que no existen)
   Future<int> eliminarArbolesConReferenciasInvalidas() async {
     final db = await database;
-    
+
     // Eliminar árboles cuya especie no existe
     final arbolesEspecieInvalida = await db.rawDelete('''
       DELETE FROM arboles 
       WHERE especie_id NOT IN (SELECT id FROM especies)
     ''');
-    
+
     // Eliminar árboles cuya parcela no existe
     final arbolesParcelaInvalida = await db.rawDelete('''
       DELETE FROM arboles 
       WHERE parcela_id NOT IN (SELECT id FROM parcelas)
     ''');
-    
+
     final total = arbolesEspecieInvalida + arbolesParcelaInvalida;
     print('🗑️ Eliminados $total árboles con referencias inválidas');
     return total;
+  }
+
+  // === BATCH OPERATIONS ===
+
+  /// Insertar múltiples especies en una transacción
+  Future<int> insertEspeciesBatch(List<Map<String, dynamic>> especies) async {
+    if (especies.isEmpty) return 0;
+
+    final db = await database;
+    final batch = db.batch();
+    int count = 0;
+
+    for (final especie in especies) {
+      batch.insert('especies', especie,
+          conflictAlgorithm: ConflictAlgorithm.replace);
+      count++;
+    }
+
+    await batch.commit(noResult: true);
+    return count;
+  }
+
+  /// Insertar múltiples parcelas en una transacción
+  Future<int> insertParcelasBatch(List<Map<String, dynamic>> parcelas) async {
+    if (parcelas.isEmpty) return 0;
+
+    final db = await database;
+    final batch = db.batch();
+    int count = 0;
+
+    for (final parcela in parcelas) {
+      batch.insert('parcelas', parcela,
+          conflictAlgorithm: ConflictAlgorithm.replace);
+      count++;
+    }
+
+    await batch.commit(noResult: true);
+    return count;
+  }
+
+  /// Insertar múltiples árboles en una transacción
+  Future<int> insertArbolesBatch(List<Map<String, dynamic>> arboles) async {
+    if (arboles.isEmpty) return 0;
+
+    final db = await database;
+    final batch = db.batch();
+    int count = 0;
+
+    for (final arbol in arboles) {
+      batch.insert('arboles', arbol,
+          conflictAlgorithm: ConflictAlgorithm.replace);
+      count++;
+    }
+
+    await batch.commit(noResult: true);
+    return count;
+  }
+
+  /// Actualizar estado de sincronización de múltiples registros
+  Future<void> markAsSyncedBatch(String table, List<String> ids) async {
+    if (ids.isEmpty) return;
+
+    final db = await database;
+    final batch = db.batch();
+
+    for (final id in ids) {
+      batch.update(
+        table,
+        {'sincronizado': 1},
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+    }
+
+    await batch.commit(noResult: true);
   }
 }
