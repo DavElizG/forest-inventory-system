@@ -163,6 +163,121 @@ class _HomeScreenState extends State<HomeScreen> {
           const SyncLoadingOverlay(),
         ],
       ),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // FAB principal grande - Agregar Árbol (acción más importante)
+          FloatingActionButton.extended(
+            onPressed: () => Navigator.pushNamed(context, routes.AppRoutes.arbolForm),
+            backgroundColor: Colors.green[700],
+            icon: const Icon(Icons.add, size: 32),
+            label: const Text(
+              'AGREGAR ÁRBOL',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                letterSpacing: 0.5,
+              ),
+            ),
+            heroTag: 'addTree',
+          ),
+          const SizedBox(height: 12),
+          // Menú de acciones rápidas
+          FloatingActionButton(
+            onPressed: _showQuickActionsMenu,
+            backgroundColor: Colors.blue[700],
+            child: const Icon(Icons.apps),
+            heroTag: 'menu',
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Mostrar menú de acciones rápidas
+  void _showQuickActionsMenu() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Acciones Rápidas',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const CircleAvatar(
+                backgroundColor: Colors.green,
+                child: Icon(Icons.add, color: Colors.white),
+              ),
+              title: const Text('Agregar Árbol'),
+              subtitle: const Text('Registro rápido de árbol'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, routes.AppRoutes.arbolForm);
+              },
+            ),
+            ListTile(
+              leading: const CircleAvatar(
+                backgroundColor: Colors.orange,
+                child: Icon(Icons.sync, color: Colors.white),
+              ),
+              title: const Text('Sincronizar'),
+              subtitle: const Text('Actualizar datos con servidor'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, routes.AppRoutes.sync);
+              },
+            ),
+            ListTile(
+              leading: const CircleAvatar(
+                backgroundColor: Colors.blue,
+                child: Icon(Icons.grid_on, color: Colors.white),
+              ),
+              title: const Text('Parcelas'),
+              subtitle: const Text('Gestionar áreas de inventario'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, routes.AppRoutes.parcelaList);
+              },
+            ),
+            ListTile(
+              leading: const CircleAvatar(
+                backgroundColor: Colors.teal,
+                child: Icon(Icons.eco, color: Colors.white),
+              ),
+              title: const Text('Especies'),
+              subtitle: const Text('Catálogo de especies'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, routes.AppRoutes.especieList);
+              },
+            ),
+            ListTile(
+              leading: const CircleAvatar(
+                backgroundColor: Colors.purple,
+                child: Icon(Icons.download, color: Colors.white),
+              ),
+              title: const Text('Exportar'),
+              subtitle: const Text('Descargar datos en Excel/KML'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, routes.AppRoutes.export);
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 

@@ -9,6 +9,11 @@ class ErrorHelper {
     final message = error.friendlyMessage;
     final isNetworkError = error.isNetworkError;
     
+    // Validar mensaje para evitar "null" o vacío
+    if (message.isEmpty || message == 'null') {
+      message = 'Error de conexión inesperado';
+    }
+    
     if (!context.mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -31,7 +36,7 @@ class ErrorHelper {
         backgroundColor: isNetworkError ? Colors.orange[700] : Colors.red[700],
         duration: const Duration(seconds: 4),
         behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.only(bottom: 80, left: 16, right: 16),
+        margin: const EdgeInsets.only(bottom: 16, left: 16, right: 16),
         action: SnackBarAction(
           label: 'Cerrar',
           textColor: Colors.white,
@@ -49,6 +54,20 @@ class ErrorHelper {
     String message, {
     Duration duration = const Duration(seconds: 3),
   }) {
+    // Validar mensaje para evitar "null" o vacío
+    String cleanMessage = message.trim();
+    if (cleanMessage.isEmpty || cleanMessage == 'null' || cleanMessage == 'Exception: null') {
+      cleanMessage = 'Ocurrió un error inesperado';
+    }
+    
+    // Simplificar mensajes técnicos
+    if (cleanMessage.startsWith('Exception:')) {
+      cleanMessage = cleanMessage.replaceFirst('Exception:', '').trim();
+      if (cleanMessage.isEmpty || cleanMessage == 'null') {
+        cleanMessage = 'Error en la operación';
+      }
+    }
+    
     if (!context.mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -57,13 +76,13 @@ class ErrorHelper {
           children: [
             const Icon(Icons.error_outline, color: Colors.white),
             const SizedBox(width: 12),
-            Expanded(child: Text(message)),
+            Expanded(child: Text(cleanMessage)),
           ],
         ),
         backgroundColor: Colors.red[700],
         duration: duration,
         behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.only(bottom: 80, left: 16, right: 16),
+        margin: const EdgeInsets.only(bottom: 16, left: 16, right: 16),
       ),
     );
   }
@@ -88,7 +107,7 @@ class ErrorHelper {
         backgroundColor: Colors.green[700],
         duration: duration,
         behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.only(bottom: 80, left: 16, right: 16),
+        margin: const EdgeInsets.only(bottom: 16, left: 16, right: 16),
       ),
     );
   }
@@ -113,7 +132,7 @@ class ErrorHelper {
         backgroundColor: Colors.orange[700],
         duration: duration,
         behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.only(bottom: 80, left: 16, right: 16),
+        margin: const EdgeInsets.only(bottom: 16, left: 16, right: 16),
       ),
     );
   }
