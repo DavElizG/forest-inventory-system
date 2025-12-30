@@ -31,6 +31,8 @@ class _ParcelaFormPageState extends State<ParcelaFormPage> {
   bool _isLoading = false;
   bool _isCapturingLocation = false;
   String? _locationAccuracyWarning;
+  bool _isHectares = true; // true = hectáreas, false = m²
+  double? _areaEnM2; // Para mostrar la conversión
 
   late final LocationService _locationService;
   final _localDB = LocalDatabase.instance;
@@ -39,6 +41,9 @@ class _ParcelaFormPageState extends State<ParcelaFormPage> {
   void initState() {
     super.initState();
     _locationService = LocationService();
+    
+    // Agregar listener para calcular conversión automática
+    _areaController.addListener(_calcularConversion);
 
     // Si es edición, cargar datos
     if (widget.parcela != null) {
@@ -48,6 +53,27 @@ class _ParcelaFormPageState extends State<ParcelaFormPage> {
       _areaController.text = widget.parcela!['area']?.toString() ?? '';
       _latitudController.text = widget.parcela!['latitud']?.toString() ?? '';
       _longitudController.text = widget.parcela!['longitud']?.toString() ?? '';
+    }
+  }
+  
+  void _calcularConversion() {
+    final texto = _areaController.text;
+    if (texto.isEmpty) {
+      setState(() => _areaEnM2 = null);
+      return;
+    }
+    
+    final valor = double.tryParse(texto);
+    if (valor != null) {
+      setState(() {
+        if (_isHectares) {
+          // Convertir hectáreas a m² (1 ha = 10,000 m²)
+          _areaEnM2 = valor * 10000;
+        } else {
+          // Convertir m² a hectáreas
+          _areaEnM2 = valor / 10000;
+        }
+      });
     }
   }
 
@@ -176,6 +202,13 @@ class _ParcelaFormPageState extends State<ParcelaFormPage> {
       final now = DateTime.now().toIso8601String();
       final isEdit = widget.parcela != null;
       
+      // Convertir el área a hectáreas si está en m²
+      double areaEnHectareas = double.tryParse(_areaController.text) ?? 0.0;
+      if (!_isHectares) {
+        // Convertir de m² a hectáreas
+        areaEnHectareas = areaEnHectareas / 10000;
+      }
+      
       final parcelaData = {
         'id': widget.parcela?['id'] ?? const Uuid().v4(),
         'codigo': _codigoController.text.trim(),
@@ -183,7 +216,7 @@ class _ParcelaFormPageState extends State<ParcelaFormPage> {
             ? _codigoController.text.trim() 
             : _nombreController.text.trim(),
         'descripcion': _descripcionController.text.trim(),
-        'area': double.tryParse(_areaController.text) ?? 0.0,
+        'area': areaEnHectareas, // Siempre guardamos en hectáreas
         'latitud': double.parse(_latitudController.text),
         'longitud': double.parse(_longitudController.text),
         'sincronizado': 0,
@@ -307,23 +340,121 @@ class _ParcelaFormPageState extends State<ParcelaFormPage> {
                 ),
                 const SizedBox(height: 16),
 
-                // Área
-                TextFormField(
-                  controller: _areaController,
-                  decoration: InputDecoration(
-                    labelText: 'Área (ha)',
-                    hintText: 'Ej: 2.5',
-                    prefixIcon: const Icon(Icons.straighten),
-                    suffixText: 'ha',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                // Área con selector de unidades
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: TextFormField(
+                        controller: _areaController,
+                        decoration: InputDecoration(
+                          labelText: 'Área *',
+                          hintText: _isHectares ? 'Ej: 2.5' : 'Ej: 25000',
+                          prefixIcon: const Icon(Icons.straighten),
+                          suffixText: _isHectares ? 'ha' : 'm²',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey[50],
+                          helperText: _areaEnM2 != null
+                              ? (_isHectares
+                                  ? '≈ ${_areaEnM2!.toStringAsFixed(2)} m²'
+                                  : '≈ ${_areaEnM2!.toStringAsFixed(4)} ha')
+                              : null,
+                        ),
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+                        ],
+                        textInputAction: TextInputAction.next,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'El área es requerida';
+                          }
+                          final numero = double.tryParse(value);
+                          if (numero == null || numero <= 0) {
+                            return 'Ingresa un área válida';
+                          }
+                          return null;
+                        },
+                      ),
                     ),
-                  ),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 2,
+                      child: Container(
+                        height: 60,
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey[400]!),
+                          borderRadius: BorderRadius.circular(12),
+                          color: Colors.grey[50],
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            Expanded(
+                              child: InkWell(
+                                onTap: () {
+                                  if (!_isHectares) {
+                                    setState(() {
+                                      _isHectares = true;
+                                      _calcularConversion();
+                                    });
+                                  }
+                                },
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: _isHectares ? Colors.green[700] : Colors.transparent,
+                                    borderRadius: const BorderRadius.horizontal(left: Radius.circular(11)),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  child: Center(
+                                    child: Text(
+                                      'ha',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: _isHectares ? Colors.white : Colors.grey[700],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Container(width: 1, color: Colors.grey[400]),
+                            Expanded(
+                              child: InkWell(
+                                onTap: () {
+                                  if (_isHectares) {
+                                    setState(() {
+                                      _isHectares = false;
+                                      _calcularConversion();
+                                    });
+                                  }
+                                },
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: !_isHectares ? Colors.green[700] : Colors.transparent,
+                                    borderRadius: const BorderRadius.horizontal(right: Radius.circular(11)),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  child: Center(
+                                    child: Text(
+                                      'm²',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: !_isHectares ? Colors.white : Colors.grey[700],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
-                  textInputAction: TextInputAction.next,
                 ),
                 const SizedBox(height: 24),
 
