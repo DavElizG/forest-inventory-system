@@ -48,6 +48,12 @@
 **/node_modules/
 **/dist/
 **/build/
+
+# Migration temporary files
+temp-migration/
+MigracionEspecies.csx
+apply-especies-migration.ps1
+OPTIMIZACIONES_APP.md
 **/.pnpm-store/
 **/.turbo/
 **/*.log
