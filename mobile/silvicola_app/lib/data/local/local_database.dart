@@ -197,13 +197,8 @@ class LocalDatabase {
 
   Future<int> deleteParcela(String id) async {
     final db = await database;
-    // Marcar como inactivo en lugar de eliminar para permitir sincronización
-    return await db.update(
-      'parcelas',
-      {'activo': 0, 'sincronizado': 0},
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    // Eliminar físicamente como especies y árboles
+    return await db.delete('parcelas', where: 'id = ?', whereArgs: [id]);
   }
 
   Future<void> marcarParcelaSincronizada(String id) async {
