@@ -254,14 +254,17 @@ class _EspeciesListPageState extends State<EspeciesListPage> {
                             child: Icon(Icons.eco, color: Colors.green[700]),
                           ),
                           title: Text(
-                            especie['nombre_cientifico'] ?? 'Sin nombre',
+                            especie['nombre_comun'] ?? especie['nombre_cientifico'] ?? 'Sin nombre',
                             style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                           subtitle: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              if (especie['nombre_comun'] != null && especie['nombre_comun'].toString().isNotEmpty)
-                                Text(especie['nombre_comun']),
+                              if (especie['nombre_cientifico'] != null && especie['nombre_cientifico'].toString().isNotEmpty)
+                                Text(
+                                  especie['nombre_cientifico'],
+                                  style: const TextStyle(fontStyle: FontStyle.italic),
+                                ),
                               if (especie['familia'] != null && especie['familia'].toString().isNotEmpty)
                                 Text(
                                   'Familia: ${especie['familia']}',

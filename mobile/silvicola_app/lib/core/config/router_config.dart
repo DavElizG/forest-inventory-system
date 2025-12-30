@@ -4,6 +4,7 @@ import '../../presentation/screens/splash/splash_screen.dart';
 import '../../presentation/screens/auth/login_screen.dart';
 import '../../presentation/pages/auth/register_page.dart';
 import '../../presentation/screens/home/home_screen.dart';
+import '../../presentation/screens/main_navigation_screen.dart';
 // Usar implementaciones completas de pages/ en lugar de stubs de screens/
 import '../../presentation/pages/arboles/arbol_list_page.dart';
 import '../../presentation/pages/arboles/arbol_form_page.dart';
@@ -40,7 +41,7 @@ class AppRoutes {
         splash: (context) => const SplashScreen(),
         login: (context) => const LoginScreen(),
         register: (context) => const RegisterPage(),
-        home: (context) => const AuthGuardedRoute(child: HomeScreen()),
+        home: (context) => const AuthGuardedRoute(child: MainNavigationScreen()),
         arbolList: (context) => const AuthGuardedRoute(child: ArbolListPage()),
         arbolForm: (context) => const AuthGuardedRoute(child: ArbolFormPage()),
         parcelaList: (context) => const AuthGuardedRoute(child: ParcelaListPage()),

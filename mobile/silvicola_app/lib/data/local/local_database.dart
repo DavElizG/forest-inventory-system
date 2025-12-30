@@ -174,16 +174,17 @@ class LocalDatabase {
       {bool soloNoSincronizadas = false}) async {
     final db = await database;
     if (soloNoSincronizadas) {
-      return await db
-          .query('parcelas', where: 'sincronizado = ?', whereArgs: [0]);
+      return await db.query('parcelas',
+          where: 'sincronizado = ? AND activo = ?', whereArgs: [0, 1]);
     }
-    return await db.query('parcelas', orderBy: 'fecha_creacion DESC');
+    return await db.query('parcelas',
+        where: 'activo = ?', whereArgs: [1], orderBy: 'fecha_creacion DESC');
   }
 
   Future<Map<String, dynamic>?> getParcelaById(String id) async {
     final db = await database;
-    final results =
-        await db.query('parcelas', where: 'id = ?', whereArgs: [id]);
+    final results = await db.query('parcelas',
+        where: 'id = ? AND activo = ?', whereArgs: [id, 1]);
     return results.isNotEmpty ? results.first : null;
   }
 
@@ -196,7 +197,13 @@ class LocalDatabase {
 
   Future<int> deleteParcela(String id) async {
     final db = await database;
-    return await db.delete('parcelas', where: 'id = ?', whereArgs: [id]);
+    // Marcar como inactivo en lugar de eliminar para permitir sincronización
+    return await db.update(
+      'parcelas',
+      {'activo': 0, 'sincronizado': 0},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
   }
 
   Future<void> marcarParcelaSincronizada(String id) async {
@@ -395,7 +402,7 @@ class LocalDatabase {
     final db = await database;
 
     final parcelasNoSync = Sqflite.firstIntValue(await db.rawQuery(
-            'SELECT COUNT(*) FROM parcelas WHERE sincronizado = 0')) ??
+            'SELECT COUNT(*) FROM parcelas WHERE sincronizado = 0 AND activo = 1')) ??
         0;
 
     final arbolesNoSync = Sqflite.firstIntValue(await db

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../data/local/local_database.dart';
+import '../../data/services/sync_service.dart';
 
 class ParcelaProvider extends ChangeNotifier {
   final LocalDatabase _localDatabase = LocalDatabase.instance;
+  final SyncService? _syncService;
   List<Map<String, dynamic>> _parcelas = [];
   bool _isLoading = false;
   bool _isLoadingMore = false;
@@ -12,6 +14,8 @@ class ParcelaProvider extends ChangeNotifier {
   int _currentPage = 1;
   final int _pageSize = 20;
   bool _hasMore = true;
+
+  ParcelaProvider({SyncService? syncService}) : _syncService = syncService;
 
   List<Map<String, dynamic>> get parcelas => _parcelas;
   bool get isLoading => _isLoading;
@@ -126,6 +130,8 @@ class ParcelaProvider extends ChangeNotifier {
       }
       
       await fetchParcelas();
+      // Actualizar contadores de sincronización
+      await _syncService?.updatePendingCounts();
       return true;
     } catch (e) {
       _errorMessage = 'Error al guardar parcela: ${e.toString()}';
@@ -137,14 +143,10 @@ class ParcelaProvider extends ChangeNotifier {
   /// Elimina una parcela (soft delete)
   Future<bool> deleteParcela(String id) async {
     try {
-      final db = await _localDatabase.database;
-      await db.update(
-        'parcelas',
-        {'activo': 0, 'sincronizado': 0},
-        where: 'id = ?',
-        whereArgs: [id],
-      );
+      await _localDatabase.deleteParcela(id);
       await fetchParcelas();
+      // Actualizar contadores de sincronización
+      await _syncService?.updatePendingCounts();
       return true;
     } catch (e) {
       _errorMessage = 'Error al eliminar parcela: ${e.toString()}';

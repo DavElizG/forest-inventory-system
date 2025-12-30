@@ -390,7 +390,7 @@ class _ArbolFormPageState extends State<ArbolFormPage> {
         hintText: 'Automático (editable)',
         prefixIcon: const Icon(Icons.format_list_numbered),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
         ),
         filled: true,
         fillColor: Colors.grey[50],

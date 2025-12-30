@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:showcaseview/showcaseview.dart';
 
 import '../../../core/config/router_config.dart' as routes;
-import '../../../core/services/onboarding_service.dart';
+import '../../../core/utils/error_helper.dart';
+import '../../../core/services/connectivity_service.dart';
 import '../../providers/auth_provider.dart';
-import '../../widgets/connectivity_banner.dart';
-import '../../widgets/sync_loading_overlay.dart';
+import '../../providers/arbol_provider.dart';
+import '../../pages/arboles/arbol_form_page.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,313 +16,284 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final _onboardingService = OnboardingService();
-  
-  // Keys para los showcases
-  final GlobalKey _arbolesKey = GlobalKey();
-  final GlobalKey _parcelasKey = GlobalKey();
-  final GlobalKey _especiesKey = GlobalKey();
-  final GlobalKey _sincronizarKey = GlobalKey();
-  final GlobalKey _exportarKey = GlobalKey();
-  final GlobalKey _settingsKey = GlobalKey();
+  final ScrollController _scrollController = ScrollController();
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
-    // Verificar si debe mostrar el onboarding
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final completed = await _onboardingService.isHomeCompleted();
-      if (!completed && mounted) {
-        ShowCaseWidget.of(context).startShowCase([
-          _arbolesKey,
-          _parcelasKey,
-          _especiesKey,
-          _sincronizarKey,
-          _exportarKey,
-          _settingsKey,
-        ]);
-        // Marcar como completado después de iniciar
-        await _onboardingService.setHomeCompleted();
-      }
+    _scrollController.addListener(_onScroll);
+    // Cargar árboles al inicio
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ArbolProvider>().fetchArboles();
     });
   }
 
   @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_searchQuery.isNotEmpty) return;
+
+    final arbolProvider = context.read<ArbolProvider>();
+    if (arbolProvider.isLoadingMore || !arbolProvider.hasMore) return;
+
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.position.pixels;
+    const delta = 200.0;
+
+    if (currentScroll >= maxScroll - delta) {
+      arbolProvider.fetchMoreArboles();
+    }
+  }
+
+  Future<void> _navegarAFormulario({Map<String, dynamic>? arbol}) async {
+    final resultado = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ArbolFormPage(arbol: arbol),
+      ),
+    );
+
+    if (resultado == true && mounted) {
+      context.read<ArbolProvider>().fetchArboles();
+    }
+  }
+
+  Future<void> _eliminarArbol(String id) async {
+    final confirmar = await ErrorHelper.showConfirmDialog(
+      context,
+      title: 'Eliminar Árbol',
+      message: '¿Estás seguro de que deseas eliminar este árbol?',
+      confirmText: 'Eliminar',
+      isDangerous: true,
+    );
+
+    if (!confirmar) return;
+
+    try {
+      await context.read<ArbolProvider>().deleteArbol(id);
+      if (mounted) {
+        ErrorHelper.showSuccess(context, 'Árbol eliminado correctamente');
+      }
+    } catch (e) {
+      if (mounted) {
+        ErrorHelper.showError(context, 'Error al eliminar árbol: $e');
+      }
+    }
+  }
+
+  List<Map<String, dynamic>> _filtrarArboles(List<Map<String, dynamic>> arboles) {
+    if (_searchQuery.isEmpty) return arboles;
+    
+    return arboles.where((arbol) {
+      final nombreLocal = arbol['observaciones']?.toString().toLowerCase() ?? '';
+      final especieNombre = arbol['especieNombre']?.toString().toLowerCase() ?? '';
+      final parcelaCodigo = arbol['parcelaCodigo']?.toString().toLowerCase() ?? '';
+      final query = _searchQuery.toLowerCase();
+      
+      return nombreLocal.contains(query) ||
+          especieNombre.contains(query) ||
+          parcelaCodigo.contains(query);
+    }).toList();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final connectivity = context.watch<ConnectivityService>();
+    final arbolProvider = context.watch<ArbolProvider>();
+    final authProvider = context.watch<AuthProvider>();
+    
+    final arbolesFiltrados = _filtrarArboles(arbolProvider.arboles);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Silvícola'),
         actions: [
-          // Mostrar nombre de usuario
-          Consumer<AuthProvider>(
-            builder: (context, authProvider, _) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Center(
-                  child: Text(
-                    authProvider.userName ?? '',
-                    style: const TextStyle(fontSize: 14),
-                  ),
-                ),
-              );
-            },
-          ),
-          Showcase(
-            key: _settingsKey,
-            description: 'Accede a la configuración, tu perfil y cierra sesión desde aquí.',
-            child: IconButton(
-              icon: const Icon(Icons.settings),
-              onPressed: () =>
-                  Navigator.pushNamed(context, routes.AppRoutes.settings),
-            ),
-          ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: GridView.count(
-              crossAxisCount: 2,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              children: [
-                Showcase(
-                  key: _arbolesKey,
-                  title: 'Árboles',
-                  description: 'Aquí puedes registrar los árboles que encuentres en las parcelas. Mide el diámetro, altura y registra la especie.',
-                  child: _buildMenuCard(
-                    context,
-                    'Árboles',
-                    Icons.park,
-                    routes.AppRoutes.arbolList,
-                    Colors.green,
-                  ),
-                ),
-                Showcase(
-                  key: _parcelasKey,
-                  title: 'Parcelas',
-                  description: 'Crea y gestiona las parcelas del inventario. Cada parcela representa un área específica del bosque.',
-                  child: _buildMenuCard(
-                    context,
-                    'Parcelas',
-                    Icons.grid_on,
-                    routes.AppRoutes.parcelaList,
-                    Colors.blue,
-                  ),
-                ),
-                Showcase(
-                  key: _especiesKey,
-                  title: 'Especies',
-                  description: 'Consulta el catálogo de especies forestales disponibles para clasificar los árboles.',
-                  child: _buildMenuCard(
-                    context,
-                    'Especies',
-                    Icons.eco,
-                    routes.AppRoutes.especieList,
-                    Colors.teal,
-                  ),
-                ),
-                Showcase(
-                  key: _sincronizarKey,
-                  title: 'Sincronizar',
-                  description: 'Sincroniza tus datos locales con el servidor cuando tengas conexión a internet.',
-                  child: _buildMenuCard(
-                    context,
-                    'Sincronizar',
-                    Icons.sync,
-                    routes.AppRoutes.sync,
-                    Colors.orange,
-                  ),
-                ),
-                Showcase(
-                  key: _exportarKey,
-                  title: 'Exportar',
-                  description: 'Exporta tus datos en diferentes formatos: CSV, Excel o KML/KMZ para Google Earth.',
-                  child: _buildMenuCard(
-                    context,
-                    'Exportar',
-                    Icons.download,
-                    routes.AppRoutes.export,
-                    Colors.purple,
-                  ),
-                ),
-                _buildMenuCard(
-                  context,
-                  'Reportes',
-                  Icons.assessment,
-                  routes.AppRoutes.reportes,
-                  Colors.indigo,
-                ),
-              ],
-            ),
-          ),
-          // Banner de conectividad
-          const ConnectivityBanner(),
-          // Overlay de sincronización
-          const SyncLoadingOverlay(),
-        ],
-      ),
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // FAB principal grande - Agregar Árbol (acción más importante)
-          FloatingActionButton.extended(
-            onPressed: () => Navigator.pushNamed(context, routes.AppRoutes.arbolForm),
-            backgroundColor: Colors.green[700],
-            icon: const Icon(Icons.add, size: 32),
-            label: const Text(
-              'AGREGAR ÁRBOL',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                letterSpacing: 0.5,
+          if (!connectivity.isOnline)
+            Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: Row(
+                children: [
+                  Icon(Icons.cloud_off, color: Colors.orange[200]),
+                  const SizedBox(width: 4),
+                  const Text('Offline', style: TextStyle(fontSize: 12)),
+                ],
               ),
             ),
-            heroTag: 'addTree',
-          ),
-          const SizedBox(height: 12),
-          // Menú de acciones rápidas
-          FloatingActionButton(
-            onPressed: _showQuickActionsMenu,
-            backgroundColor: Colors.blue[700],
-            child: const Icon(Icons.apps),
-            heroTag: 'menu',
-          ),
         ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(60),
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: 'Buscar árboles...',
+                prefixIcon: const Icon(Icons.search),
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+              onChanged: (value) {
+                setState(() => _searchQuery = value);
+              },
+            ),
+          ),
+        ),
+      ),
+      body: arbolProvider.isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : arbolesFiltrados.isEmpty
+              ? _buildEmptyState()
+              : RefreshIndicator(
+                  onRefresh: () => context.read<ArbolProvider>().fetchArboles(),
+                  child: ListView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.all(16),
+                    itemCount: arbolesFiltrados.length + 1,
+                    itemBuilder: (context, index) {
+                      if (index == arbolesFiltrados.length) {
+                        if (arbolProvider.isLoadingMore) {
+                          return const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 16),
+                            child: Center(child: CircularProgressIndicator()),
+                          );
+                        } else if (!arbolProvider.hasMore && arbolesFiltrados.length > 10) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            child: Center(
+                              child: Text(
+                                'No hay más árboles',
+                                style: TextStyle(color: Colors.grey[600]),
+                              ),
+                            ),
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      }
+
+                      final arbol = arbolesFiltrados[index];
+                      final sincronizado = arbol['sincronizado'] == 1;
+                      
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: Colors.green[100],
+                            child: Icon(Icons.park, color: Colors.green[700]),
+                          ),
+                          title: Text(
+                            arbol['especieNombre'] ?? 'Sin especie',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (arbol['observaciones'] != null && arbol['observaciones'].toString().isNotEmpty)
+                                Text('Observaciones: ${arbol['observaciones']}'),
+                              if (arbol['parcelaCodigo'] != null)
+                                Text(
+                                  'Parcela: ${arbol['parcelaCodigo']}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                              Text(
+                                'Altura: ${arbol['altura'] ?? 'N/A'} m | DAP: ${arbol['diametro'] ?? 'N/A'} cm',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                              if (!sincronizado)
+                                Row(
+                                  children: [
+                                    Icon(Icons.cloud_off, size: 12, color: Colors.orange[700]),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'No sincronizado',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.orange[700],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                            ],
+                          ),
+                          trailing: PopupMenuButton(
+                            itemBuilder: (context) => [
+                              const PopupMenuItem(
+                                value: 'editar',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.edit),
+                                    SizedBox(width: 8),
+                                    Text('Editar'),
+                                  ],
+                                ),
+                              ),
+                              const PopupMenuItem(
+                                value: 'eliminar',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.delete, color: Colors.red),
+                                    SizedBox(width: 8),
+                                    Text('Eliminar', style: TextStyle(color: Colors.red)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                            onSelected: (value) {
+                              if (value == 'editar') {
+                                _navegarAFormulario(arbol: arbol);
+                              } else if (value == 'eliminar') {
+                                _eliminarArbol(arbol['id']);
+                              }
+                            },
+                          ),
+                          onTap: () => _navegarAFormulario(arbol: arbol),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _navegarAFormulario(),
+        icon: const Icon(Icons.add),
+        label: const Text('Nuevo Árbol'),
       ),
     );
   }
 
-  /// Mostrar menú de acciones rápidas
-  void _showQuickActionsMenu() {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => Container(
-        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Acciones Rápidas',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            ListTile(
-              leading: const CircleAvatar(
-                backgroundColor: Colors.green,
-                child: Icon(Icons.add, color: Colors.white),
-              ),
-              title: const Text('Agregar Árbol'),
-              subtitle: const Text('Registro rápido de árbol'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, routes.AppRoutes.arbolForm);
-              },
-            ),
-            ListTile(
-              leading: const CircleAvatar(
-                backgroundColor: Colors.orange,
-                child: Icon(Icons.sync, color: Colors.white),
-              ),
-              title: const Text('Sincronizar'),
-              subtitle: const Text('Actualizar datos con servidor'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, routes.AppRoutes.sync);
-              },
-            ),
-            ListTile(
-              leading: const CircleAvatar(
-                backgroundColor: Colors.blue,
-                child: Icon(Icons.grid_on, color: Colors.white),
-              ),
-              title: const Text('Parcelas'),
-              subtitle: const Text('Gestionar áreas de inventario'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, routes.AppRoutes.parcelaList);
-              },
-            ),
-            ListTile(
-              leading: const CircleAvatar(
-                backgroundColor: Colors.teal,
-                child: Icon(Icons.eco, color: Colors.white),
-              ),
-              title: const Text('Especies'),
-              subtitle: const Text('Catálogo de especies'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, routes.AppRoutes.especieList);
-              },
-            ),
-            ListTile(
-              leading: const CircleAvatar(
-                backgroundColor: Colors.purple,
-                child: Icon(Icons.download, color: Colors.white),
-              ),
-              title: const Text('Exportar'),
-              subtitle: const Text('Descargar datos en Excel/KML'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, routes.AppRoutes.export);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMenuCard(
-      BuildContext context, String title, IconData icon, String route, Color color) {
-    return Card(
-      elevation: 2,
-      child: InkWell(
-        onTap: () => Navigator.pushNamed(context, route),
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                color.withOpacity(0.1),
-                color.withOpacity(0.05),
-              ],
-            ),
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.park, size: 80, color: Colors.grey[400]),
+          const SizedBox(height: 16),
+          Text(
+            _searchQuery.isEmpty 
+                ? 'No hay árboles registrados'
+                : 'No se encontraron árboles',
+            style: TextStyle(fontSize: 18, color: Colors.grey[600]),
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.2),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, size: 48, color: color),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: color.withOpacity(0.9),
-                ),
-              ),
-            ],
+          const SizedBox(height: 8),
+          Text(
+            _searchQuery.isEmpty
+                ? 'Presiona el botón + arriba para agregar un árbol'
+                : 'Intenta con otra búsqueda',
+            style: TextStyle(color: Colors.grey[500]),
           ),
-        ),
+        ],
       ),
     );
   }

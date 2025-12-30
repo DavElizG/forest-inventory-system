@@ -6,7 +6,7 @@ import '../network/api_error_interceptor.dart';
 class ErrorHelper {
   /// Mostrar SnackBar con error de Dio
   static void showDioError(BuildContext context, DioException error) {
-    final message = error.friendlyMessage;
+    var message = error.friendlyMessage;
     final isNetworkError = error.isNetworkError;
     
     // Validar mensaje para evitar "null" o vacío

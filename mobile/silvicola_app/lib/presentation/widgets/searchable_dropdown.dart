@@ -53,6 +53,8 @@ class SearchableDropdownState extends State<SearchableDropdown> {
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
+              filled: true,
+              fillColor: Colors.grey[50],
               errorText: _errorText,
               errorBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),

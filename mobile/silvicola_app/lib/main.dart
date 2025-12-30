@@ -66,7 +66,11 @@ void main() async {
         
         // Providers de entidades
         ChangeNotifierProvider(create: (_) => ArbolProvider()),
-        ChangeNotifierProvider(create: (_) => ParcelaProvider()),
+        ChangeNotifierProvider(
+          create: (context) => ParcelaProvider(
+            syncService: context.read<SyncService>(),
+          ),
+        ),
         ChangeNotifierProvider(create: (_) => EspecieProvider()),
         ChangeNotifierProvider(create: (context) => SyncProvider(context.read<SyncService>())),
       ],
