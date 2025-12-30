@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/config/router_config.dart' as routes;
 import '../../../core/utils/error_helper.dart';
@@ -101,6 +102,57 @@ class _HomeScreenState extends State<HomeScreen> {
     }).toList();
   }
 
+  Map<String, List<Map<String, dynamic>>> _agruparPorFecha(List<Map<String, dynamic>> arboles) {
+    final Map<String, List<Map<String, dynamic>>> agrupados = {};
+    final ahora = DateTime.now();
+    final hoy = DateTime(ahora.year, ahora.month, ahora.day);
+    final ayer = hoy.subtract(const Duration(days: 1));
+    
+    // Nombres de días y meses en español
+    final diasSemana = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+    final meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 
+                   'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+    
+    for (final arbol in arboles) {
+      final fechaStr = arbol['fecha_creacion'] ?? arbol['fecha_medicion'];
+      if (fechaStr == null) continue;
+      
+      try {
+        final fecha = DateTime.parse(fechaStr);
+        final fechaSoloFecha = DateTime(fecha.year, fecha.month, fecha.day);
+        
+        String clave;
+        if (fechaSoloFecha.isAtSameMomentAs(hoy)) {
+          clave = 'Hoy';
+        } else if (fechaSoloFecha.isAtSameMomentAs(ayer)) {
+          clave = 'Ayer';
+        } else if (fechaSoloFecha.isAfter(hoy.subtract(const Duration(days: 7)))) {
+          // Día de la semana (1 = Lunes, 7 = Domingo)
+          clave = diasSemana[fecha.weekday - 1];
+        } else if (fechaSoloFecha.year == ahora.year) {
+          // Formato: 15 de diciembre
+          clave = '${fecha.day} de ${meses[fecha.month - 1]}';
+        } else {
+          // Formato: 15 de diciembre de 2024
+          clave = '${fecha.day} de ${meses[fecha.month - 1]} de ${fecha.year}';
+        }
+        
+        if (!agrupados.containsKey(clave)) {
+          agrupados[clave] = [];
+        }
+        agrupados[clave]!.add(arbol);
+      } catch (e) {
+        // Si hay error parseando la fecha, agregar a "Sin fecha"
+        if (!agrupados.containsKey('Sin fecha')) {
+          agrupados['Sin fecha'] = [];
+        }
+        agrupados['Sin fecha']!.add(arbol);
+      }
+    }
+    
+    return agrupados;
+  }
+
   @override
   Widget build(BuildContext context) {
     final connectivity = context.watch<ConnectivityService>();
@@ -108,6 +160,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final authProvider = context.watch<AuthProvider>();
     
     final arbolesFiltrados = _filtrarArboles(arbolProvider.arboles);
+    final arbolesAgrupados = _agruparPorFecha(arbolesFiltrados);
+    final grupos = arbolesAgrupados.keys.toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -156,112 +210,47 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: ListView.builder(
                     controller: _scrollController,
                     padding: const EdgeInsets.all(16),
-                    itemCount: arbolesFiltrados.length + 1,
+                    itemCount: _calcularTotalItems(arbolesAgrupados) + 1,
                     itemBuilder: (context, index) {
-                      if (index == arbolesFiltrados.length) {
-                        if (arbolProvider.isLoadingMore) {
-                          return const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 16),
-                            child: Center(child: CircularProgressIndicator()),
-                          );
-                        } else if (!arbolProvider.hasMore && arbolesFiltrados.length > 10) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            child: Center(
-                              child: Text(
-                                'No hay más árboles',
-                                style: TextStyle(color: Colors.grey[600]),
-                              ),
-                            ),
-                          );
+                      // Calcular en qué grupo y posición estamos
+                      int currentIndex = 0;
+                      for (int i = 0; i < grupos.length; i++) {
+                        final grupo = grupos[i];
+                        final arbolesEnGrupo = arbolesAgrupados[grupo]!;
+                        
+                        // Si es el header del grupo
+                        if (index == currentIndex) {
+                          return _buildDateHeader(grupo, arbolesEnGrupo.length);
                         }
-                        return const SizedBox.shrink();
+                        currentIndex++;
+                        
+                        // Si está dentro del grupo
+                        if (index < currentIndex + arbolesEnGrupo.length) {
+                          final arbolIndex = index - currentIndex;
+                          final arbol = arbolesEnGrupo[arbolIndex];
+                          return _buildArbolCard(arbol);
+                        }
+                        currentIndex += arbolesEnGrupo.length;
                       }
-
-                      final arbol = arbolesFiltrados[index];
-                      final sincronizado = arbol['sincronizado'] == 1;
                       
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        child: ListTile(
-                          leading: CircleAvatar(
-                            backgroundColor: Colors.green[100],
-                            child: Icon(Icons.park, color: Colors.green[700]),
+                      // Footer con indicador de carga o fin
+                      if (arbolProvider.isLoadingMore) {
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          child: Center(child: CircularProgressIndicator()),
+                        );
+                      } else if (!arbolProvider.hasMore && arbolesFiltrados.length > 10) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          child: Center(
+                            child: Text(
+                              'No hay más árboles',
+                              style: TextStyle(color: Colors.grey[600]),
+                            ),
                           ),
-                          title: Text(
-                            arbol['especieNombre'] ?? 'Sin especie',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (arbol['observaciones'] != null && arbol['observaciones'].toString().isNotEmpty)
-                                Text('Observaciones: ${arbol['observaciones']}'),
-                              if (arbol['parcelaCodigo'] != null)
-                                Text(
-                                  'Parcela: ${arbol['parcelaCodigo']}',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
-                              Text(
-                                'Altura: ${arbol['altura'] ?? 'N/A'} m | DAP: ${arbol['diametro'] ?? 'N/A'} cm',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                              if (!sincronizado)
-                                Row(
-                                  children: [
-                                    Icon(Icons.cloud_off, size: 12, color: Colors.orange[700]),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'No sincronizado',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: Colors.orange[700],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                            ],
-                          ),
-                          trailing: PopupMenuButton(
-                            itemBuilder: (context) => [
-                              const PopupMenuItem(
-                                value: 'editar',
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.edit),
-                                    SizedBox(width: 8),
-                                    Text('Editar'),
-                                  ],
-                                ),
-                              ),
-                              const PopupMenuItem(
-                                value: 'eliminar',
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.delete, color: Colors.red),
-                                    SizedBox(width: 8),
-                                    Text('Eliminar', style: TextStyle(color: Colors.red)),
-                                  ],
-                                ),
-                              ),
-                            ],
-                            onSelected: (value) {
-                              if (value == 'editar') {
-                                _navegarAFormulario(arbol: arbol);
-                              } else if (value == 'eliminar') {
-                                _eliminarArbol(arbol['id']);
-                              }
-                            },
-                          ),
-                          onTap: () => _navegarAFormulario(arbol: arbol),
-                        ),
-                      );
+                        );
+                      }
+                      return const SizedBox.shrink();
                     },
                   ),
                 ),
@@ -269,6 +258,150 @@ class _HomeScreenState extends State<HomeScreen> {
         onPressed: () => _navegarAFormulario(),
         icon: const Icon(Icons.add),
         label: const Text('Nuevo Árbol'),
+      ),
+    );
+  }
+
+  int _calcularTotalItems(Map<String, List<Map<String, dynamic>>> agrupados) {
+    int total = agrupados.length; // Headers
+    agrupados.forEach((key, value) {
+      total += value.length; // Árboles
+    });
+    return total;
+  }
+
+  Widget _buildDateHeader(String fecha, int cantidad) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.green[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.green[200]!),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  Icon(Icons.calendar_today, size: 20, color: Colors.green[700]),
+                  const SizedBox(width: 12),
+                  Text(
+                    fecha,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green[800],
+                    ),
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.green[700],
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '$cantidad',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildArbolCard(Map<String, dynamic> arbol) {
+    final sincronizado = arbol['sincronizado'] == 1;
+    
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: Colors.green[100],
+          child: Icon(Icons.park, color: Colors.green[700]),
+        ),
+        title: Text(
+          arbol['especieNombre'] ?? 'Sin especie',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (arbol['observaciones'] != null && arbol['observaciones'].toString().isNotEmpty)
+              Text('Observaciones: ${arbol['observaciones']}'),
+            if (arbol['parcelaCodigo'] != null)
+              Text(
+                'Parcela: ${arbol['parcelaCodigo']}',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                ),
+              ),
+            Text(
+              'Altura: ${arbol['altura'] ?? 'N/A'} m | DAP: ${arbol['diametro'] ?? 'N/A'} cm',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+              ),
+            ),
+            if (!sincronizado)
+              Row(
+                children: [
+                  Icon(Icons.cloud_off, size: 12, color: Colors.orange[700]),
+                  const SizedBox(width: 4),
+                  Text(
+                    'No sincronizado',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.orange[700],
+                    ),
+                  ),
+                ],
+              ),
+          ],
+        ),
+        trailing: PopupMenuButton(
+          itemBuilder: (context) => [
+            const PopupMenuItem(
+              value: 'editar',
+              child: Row(
+                children: [
+                  Icon(Icons.edit),
+                  SizedBox(width: 8),
+                  Text('Editar'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'eliminar',
+              child: Row(
+                children: [
+                  Icon(Icons.delete, color: Colors.red),
+                  SizedBox(width: 8),
+                  Text('Eliminar', style: TextStyle(color: Colors.red)),
+                ],
+              ),
+            ),
+          ],
+          onSelected: (value) {
+            if (value == 'editar') {
+              _navegarAFormulario(arbol: arbol);
+            } else if (value == 'eliminar') {
+              _eliminarArbol(arbol['id']);
+            }
+          },
+        ),
+        onTap: () => _navegarAFormulario(arbol: arbol),
       ),
     );
   }
