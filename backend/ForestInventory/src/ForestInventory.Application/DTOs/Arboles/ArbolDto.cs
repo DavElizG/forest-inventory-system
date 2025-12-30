@@ -28,23 +28,27 @@ public class ArbolDto
 
 public class CreateArbolDto
 {
-    public int NumeroArbol { get; set; }
+    public DateTime FechaMedicion { get; set; } // Fecha de medición (editable)
+    public int NumeroArbol { get; set; } // noarb
     public Guid ParcelaId { get; set; }
-    public Guid EspecieId { get; set; }
+    public Guid EspecieId { get; set; } // nc (nombre común)
     public Guid UsuarioCreadorId { get; set; }
     public double Latitud { get; set; }
     public double Longitud { get; set; }
-    public double? Altura { get; set; }
-    public double? Diametro { get; set; }
+    public double? Diametro { get; set; } // dap
+    public double? AlturaComercial { get; set; } // hc
+    public double? Altura { get; set; } // ht (altura total)
+    public string? Descripcion { get; set; } // obs (observaciones)
     public string? NombreLocal { get; set; }
-    public string? Descripcion { get; set; }
 }
 
 public class UpdateArbolDto
 {
+    public DateTime? FechaMedicion { get; set; }
     public Guid? EspecieId { get; set; }
-    public double? Altura { get; set; }
-    public double? Diametro { get; set; }
+    public double? Diametro { get; set; } // dap
+    public double? AlturaComercial { get; set; } // hc
+    public double? Altura { get; set; } // ht
     public string? NombreLocal { get; set; }
     public string? Descripcion { get; set; }
     public bool? Activo { get; set; }

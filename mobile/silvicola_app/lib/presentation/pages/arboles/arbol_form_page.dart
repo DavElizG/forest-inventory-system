@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/services/location_service.dart';
 import '../../../core/services/connectivity_service.dart';
@@ -36,13 +37,16 @@ class _ArbolFormPageState extends State<ArbolFormPage> {
   final _parcelaKey = GlobalKey<SearchableDropdownState>();
   final _especieKey = GlobalKey<SearchableDropdownState>();
 
+  late final TextEditingController _fechaMedicionController;
   late final TextEditingController _alturaController;
+  late final TextEditingController _alturaComercialController;
   late final TextEditingController _diametroController;
   late final TextEditingController _observacionesController;
   late final TextEditingController _latitudController;
   late final TextEditingController _longitudController;
   late final TextEditingController _numeroArbolController;
   late final LocationService _locationService;
+  DateTime _selectedDate = DateTime.now();
 
   // Estado
   String? _selectedParcelaId;
@@ -60,7 +64,11 @@ class _ArbolFormPageState extends State<ArbolFormPage> {
   }
 
   void _initializeControllers() {
+    _fechaMedicionController = TextEditingController(
+      text: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+    );
     _alturaController = TextEditingController();
+    _alturaComercialController = TextEditingController();
     _diametroController = TextEditingController();
     _observacionesController = TextEditingController();
     _latitudController = TextEditingController();
@@ -85,8 +93,10 @@ class _ArbolFormPageState extends State<ArbolFormPage> {
       _selectedParcelaId = arbol['parcela_id'];
       _selectedEspecieId = arbol['especie_id'];
       _numeroArbolController.text = (arbol['numero_arbol'] ?? 1).toString();
-      _alturaController.text = arbol['altura']?.toString() ?? '';
+      _fechaMedicionController.text = arbol['fecha_medicion'] ?? DateFormat('yyyy-MM-dd').format(DateTime.now());
       _diametroController.text = arbol['dap']?.toString() ?? '';
+      _alturaComercialController.text = arbol['altura_comercial']?.toString() ?? '';
+      _alturaController.text = arbol['altura']?.toString() ?? '';
       _observacionesController.text = arbol['observaciones'] ?? '';
       _latitudController.text = arbol['latitud']?.toString() ?? '';
       _longitudController.text = arbol['longitud']?.toString() ?? '';
@@ -106,13 +116,34 @@ class _ArbolFormPageState extends State<ArbolFormPage> {
 
   @override
   void dispose() {
+    _fechaMedicionController.dispose();
     _alturaController.dispose();
+    _alturaComercialController.dispose();
     _diametroController.dispose();
     _observacionesController.dispose();
     _latitudController.dispose();
     _longitudController.dispose();
     _numeroArbolController.dispose();
     super.dispose();
+  }
+
+  // === SELECTOR DE FECHA ===
+
+  Future<void> _selectDate() async {
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now(),
+      locale: const Locale('es', 'ES'),
+    );
+    
+    if (pickedDate != null && mounted) {
+      setState(() {
+        _selectedDate = pickedDate;
+        _fechaMedicionController.text = DateFormat('yyyy-MM-dd').format(pickedDate);
+      });
+    }
   }
 
   // === MÉTODOS DE GPS ===
@@ -205,16 +236,20 @@ class _ArbolFormPageState extends State<ArbolFormPage> {
     setState(() => _isLoading = true);
 
     try {
+      final alturaComercial = _alturaComercialController.text.trim();
+      
       final arbolData = {
         'id': widget.arbol?['id'] ?? const Uuid().v4(),
-        'numero_arbol': int.parse(_numeroArbolController.text),
+        'fecha_medicion': _fechaMedicionController.text, // fecha
+        'numero_arbol': int.parse(_numeroArbolController.text), // noarb
         'parcela_id': _selectedParcelaId!,
-        'especie_id': _selectedEspecieId!,
-        'altura': double.parse(_alturaController.text),
-        'dap': double.parse(_diametroController.text),
+        'especie_id': _selectedEspecieId!, // nc (nombre común)
+        'dap': double.parse(_diametroController.text), // dap
+        'altura_comercial': alturaComercial.isNotEmpty ? double.parse(alturaComercial) : null, // hc
+        'altura': double.parse(_alturaController.text), // ht (altura total)
+        'observaciones': _observacionesController.text.trim(), // obs
         'latitud': double.parse(_latitudController.text),
         'longitud': double.parse(_longitudController.text),
-        'observaciones': _observacionesController.text.trim(),
         'activo': 1,
         'sincronizado': 0,
         'fecha_creacion':
@@ -281,17 +316,25 @@ class _ArbolFormPageState extends State<ArbolFormPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Orden según Excel: fecha, noarb, nc, dap, hc, ht, obs
             _buildParcelaDropdown(),
+            const SizedBox(height: 16),
+            FechaMedicionField(
+              controller: _fechaMedicionController,
+              onTap: _selectDate,
+            ),
             const SizedBox(height: 16),
             _buildNumeroArbolField(),
             const SizedBox(height: 16),
-            _buildEspecieDropdown(),
+            _buildEspecieDropdown(), // NC (nombre común)
             const SizedBox(height: 24),
-            AlturaField(controller: _alturaController),
+            DiametroField(controller: _diametroController), // DAP
             const SizedBox(height: 16),
-            DiametroField(controller: _diametroController),
+            AlturaComercialField(controller: _alturaComercialController), // HC
             const SizedBox(height: 16),
-            ObservacionesField(controller: _observacionesController),
+            AlturaField(controller: _alturaController), // HT (altura total)
+            const SizedBox(height: 16),
+            ObservacionesField(controller: _observacionesController), // obs
             const SizedBox(height: 24),
             GpsSection(
               onCaptureGps: _captureGPS,

@@ -79,11 +79,11 @@ public class ArbolService : IArbolService
                 Altitud = 0,
                 Dap = dto.Diametro ?? 0,
                 Altura = dto.Altura ?? 0,
-                AlturaComercial = 0,
+                AlturaComercial = dto.AlturaComercial ?? 0,
                 DiametroCopa = 0,
                 Estado = EstadoArbol.Sano,
                 Observaciones = dto.Descripcion,
-                FechaMedicion = DateTime.UtcNow,
+                FechaMedicion = dto.FechaMedicion, // Fecha editable desde el DTO
                 ParcelaId = dto.ParcelaId,
                 EspecieId = dto.EspecieId,
                 UsuarioCreadorId = dto.UsuarioCreadorId,
@@ -113,6 +113,8 @@ public class ArbolService : IArbolService
 
             if (dto.Diametro.HasValue) arbol.Dap = dto.Diametro.Value;
             if (dto.Altura.HasValue) arbol.Altura = dto.Altura.Value;
+            if (dto.AlturaComercial.HasValue) arbol.AlturaComercial = dto.AlturaComercial.Value;
+            if (dto.FechaMedicion.HasValue) arbol.FechaMedicion = dto.FechaMedicion.Value;
             if (dto.Descripcion != null) arbol.Observaciones = dto.Descripcion;
             if (dto.EspecieId.HasValue) arbol.EspecieId = dto.EspecieId.Value;
             if (dto.Activo.HasValue) arbol.Sincronizado = dto.Activo.Value;

@@ -1,7 +1,42 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-/// Campo de altura
+/// Campo de fecha de medición (editable)
+class FechaMedicionField extends StatelessWidget {
+  final TextEditingController controller;
+  final VoidCallback onTap;
+
+  const FechaMedicionField({
+    super.key,
+    required this.controller,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: controller,
+      readOnly: true,
+      onTap: onTap,
+      decoration: InputDecoration(
+        labelText: 'Fecha de Medición *',
+        hintText: 'Selecciona una fecha',
+        prefixIcon: const Icon(Icons.calendar_today),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        filled: true,
+        fillColor: Colors.grey[50],
+      ),
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Selecciona la fecha de medición';
+        }
+        return null;
+      },
+    );
+  }
+}
+
+/// Campo de altura total (HT)
 class AlturaField extends StatelessWidget {
   final TextEditingController controller;
 
@@ -16,18 +51,53 @@ class AlturaField extends StatelessWidget {
         FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
       ],
       decoration: InputDecoration(
-        labelText: 'Altura (m) *',
+        labelText: 'Altura Total - HT (m) *',
         hintText: 'Ej: 15.5',
         prefixIcon: const Icon(Icons.height),
+        helperText: 'Altura total del árbol',
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
       validator: (value) {
         if (value == null || value.isEmpty) {
-          return 'Ingresa la altura';
+          return 'Ingresa la altura total';
         }
         final altura = double.tryParse(value);
         if (altura == null || altura <= 0) {
           return 'Altura inválida';
+        }
+        return null;
+      },
+    );
+  }
+}
+
+/// Campo de altura comercial (HC)
+class AlturaComercialField extends StatelessWidget {
+  final TextEditingController controller;
+
+  const AlturaComercialField({super.key, required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      inputFormatters: [
+        FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+      ],
+      decoration: InputDecoration(
+        labelText: 'Altura Comercial - HC (m)',
+        hintText: 'Ej: 12.0',
+        prefixIcon: const Icon(Icons.straighten),
+        helperText: 'Altura aprovechable del árbol (opcional)',
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      validator: (value) {
+        if (value != null && value.isNotEmpty) {
+          final altura = double.tryParse(value);
+          if (altura == null || altura <= 0) {
+            return 'Altura comercial inválida';
+          }
         }
         return null;
       },

@@ -38,40 +38,30 @@ public class ExportService : IExportService
             using var writer = new StreamWriter(memoryStream, Encoding.UTF8);
             using var csv = new CsvWriter(writer, CultureInfo.InvariantCulture);
 
-            // Escribir headers personalizados
-            csv.WriteField("ID");
-            csv.WriteField("Codigo");
-            csv.WriteField("Parcela");
-            csv.WriteField("Especie");
-            csv.WriteField("DAP (cm)");
-            csv.WriteField("Altura (m)");
-            csv.WriteField("Altura Comercial (m)");
-            csv.WriteField("Diametro Copa (m)");
-            csv.WriteField("Estado");
-            csv.WriteField("Latitud");
-            csv.WriteField("Longitud");
-            csv.WriteField("Altitud");
-            csv.WriteField("Fecha Medicion");
-            csv.WriteField("Observaciones");
+            // Escribir headers según formato Excel: fecha, noarb, nc, dap, hc, ht, obs
+            csv.WriteField("fecha"); // Fecha de medición
+            csv.WriteField("noarb"); // Número de árbol
+            csv.WriteField("nc"); // Nombre común (especie)
+            csv.WriteField("dap"); // Diámetro a altura del pecho
+            csv.WriteField("hc"); // Altura comercial
+            csv.WriteField("ht"); // Altura total
+            csv.WriteField("obs"); // Observaciones
+            csv.WriteField("POINT_X"); // Longitud
+            csv.WriteField("POINT_Y"); // Latitud
             csv.NextRecord();
 
-            // Escribir datos
+            // Escribir datos en el orden correcto
             foreach (var arbol in arboles)
             {
-                csv.WriteField(arbol.Id);
-                csv.WriteField(arbol.Codigo);
-                csv.WriteField(arbol.Parcela?.Codigo ?? "Sin parcela");
-                csv.WriteField(arbol.Especie?.NombreCientifico ?? "Sin especie");
-                csv.WriteField(arbol.Dap.ToString("F2"));
-                csv.WriteField(arbol.Altura.ToString("F2"));
-                csv.WriteField(arbol.AlturaComercial?.ToString("F2") ?? "");
-                csv.WriteField(arbol.DiametroCopa?.ToString("F2") ?? "");
-                csv.WriteField(arbol.Estado.ToString());
-                csv.WriteField(arbol.Latitud.ToString("F6"));
-                csv.WriteField(arbol.Longitud.ToString("F6"));
-                csv.WriteField(arbol.Altitud?.ToString("F1") ?? "");
-                csv.WriteField(arbol.FechaMedicion.ToString("yyyy-MM-dd"));
-                csv.WriteField(arbol.Observaciones ?? "");
+                csv.WriteField(arbol.FechaMedicion.ToString("yyyy-MM-dd")); // fecha
+                csv.WriteField(arbol.NumeroArbol); // noarb
+                csv.WriteField(arbol.Especie?.NombreComun ?? "Sin especie"); // nc (nombre común)
+                csv.WriteField(arbol.Dap.ToString("F2")); // dap
+                csv.WriteField(arbol.AlturaComercial?.ToString("F2") ?? ""); // hc
+                csv.WriteField(arbol.Altura.ToString("F2")); // ht (altura total)
+                csv.WriteField(arbol.Observaciones ?? ""); // obs
+                csv.WriteField(arbol.Longitud.ToString("F8")); // POINT_X
+                csv.WriteField(arbol.Latitud.ToString("F8")); // POINT_Y
                 csv.NextRecord();
             }
 
