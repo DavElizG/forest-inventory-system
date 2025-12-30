@@ -65,13 +65,21 @@ void main() async {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         
         // Providers de entidades
-        ChangeNotifierProvider(create: (_) => ArbolProvider()),
+        ChangeNotifierProvider(
+          create: (context) => ArbolProvider(
+            syncService: context.read<SyncService>(),
+          ),
+        ),
         ChangeNotifierProvider(
           create: (context) => ParcelaProvider(
             syncService: context.read<SyncService>(),
           ),
         ),
-        ChangeNotifierProvider(create: (_) => EspecieProvider()),
+        ChangeNotifierProvider(
+          create: (context) => EspecieProvider(
+            syncService: context.read<SyncService>(),
+          ),
+        ),
         ChangeNotifierProvider(create: (context) => SyncProvider(context.read<SyncService>())),
       ],
       child: const SilvicolaApp(),

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../data/local/local_database.dart';
+import '../../data/services/sync_service.dart';
 import '../../core/mixins/provider_mixins.dart';
 
 class ArbolProvider extends ChangeNotifier
     with OptimizedNotifier, LoadingStateMixin {
   final LocalDatabase _db = LocalDatabase.instance;
+  final SyncService? _syncService;
 
   List<Map<String, dynamic>> _arboles = [];
   bool _isLoadingMore = false;
@@ -18,6 +20,8 @@ class ArbolProvider extends ChangeNotifier
   List<Map<String, dynamic>> get arboles => _arboles;
   bool get isLoadingMore => _isLoadingMore;
   bool get hasMore => _hasMore;
+
+  ArbolProvider({SyncService? syncService}) : _syncService = syncService;
 
   /// Obtener árboles de la primera página
   Future<void> fetchArboles({String? parcelaId}) async {
@@ -179,7 +183,9 @@ class ArbolProvider extends ChangeNotifier
         whereArgs: [arbolData['id']],
       );
 
-      if (existing.isEmpty) {
+      final isNew = existing.isEmpty;
+
+      if (isNew) {
         // Crear nuevo
         arbolData['fecha_creacion'] = DateTime.now().toIso8601String();
         arbolData['fecha_actualizacion'] = DateTime.now().toIso8601String();
@@ -198,6 +204,11 @@ class ArbolProvider extends ChangeNotifier
       }
 
       await fetchArboles(); // Recargar lista
+      
+      // Actualizar contadores y sincronizar automáticamente
+      await _syncService?.updatePendingCounts();
+      _syncService?.syncAll();
+      
       return true;
     });
     return result ?? false;
@@ -220,6 +231,11 @@ class ArbolProvider extends ChangeNotifier
       );
 
       await fetchArboles(); // Recargar lista
+      
+      // Actualizar contadores y sincronizar automáticamente
+      await _syncService?.updatePendingCounts();
+      _syncService?.syncAll();
+      
       return true;
     });
     return result ?? false;

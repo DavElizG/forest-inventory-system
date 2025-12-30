@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../data/local/local_database.dart';
+import '../../data/services/sync_service.dart';
 
 class EspecieProvider extends ChangeNotifier {
   final LocalDatabase _db = LocalDatabase.instance;
+  final SyncService? _syncService;
   
   List<Map<String, dynamic>> _especies = [];
   bool _isLoading = false;
@@ -19,6 +21,8 @@ class EspecieProvider extends ChangeNotifier {
   bool get isLoadingMore => _isLoadingMore;
   bool get hasMore => _hasMore;
   String? get errorMessage => _errorMessage;
+
+  EspecieProvider({SyncService? syncService}) : _syncService = syncService;
 
   /// Obtener especies de la primera página
   Future<void> fetchEspecies() async {
@@ -137,6 +141,11 @@ class EspecieProvider extends ChangeNotifier {
       }
 
       await fetchEspecies();
+      
+      // Actualizar contadores y sincronizar automáticamente
+      await _syncService?.updatePendingCounts();
+      _syncService?.syncAll();
+      
       return true;
     } catch (e) {
       _errorMessage = 'Error al guardar especie: ${e.toString()}';
@@ -168,6 +177,11 @@ class EspecieProvider extends ChangeNotifier {
       );
 
       await fetchEspecies();
+      
+      // Actualizar contadores y sincronizar automáticamente
+      await _syncService?.updatePendingCounts();
+      _syncService?.syncAll();
+      
       return true;
     } catch (e) {
       _errorMessage = 'Error al eliminar especie: ${e.toString()}';
