@@ -35,18 +35,18 @@ class _ArbolFormPageState extends State<ArbolFormPage> {
   final _formKey = GlobalKey<FormState>();
   final _parcelaKey = GlobalKey<SearchableDropdownState>();
   final _especieKey = GlobalKey<SearchableDropdownState>();
-  
+
   late final TextEditingController _alturaController;
   late final TextEditingController _diametroController;
   late final TextEditingController _observacionesController;
   late final TextEditingController _latitudController;
   late final TextEditingController _longitudController;
+  late final TextEditingController _numeroArbolController;
   late final LocationService _locationService;
 
   // Estado
   String? _selectedParcelaId;
   String? _selectedEspecieId;
-  int _numeroArbol = 1;
   bool _isLoading = false;
   bool _isCapturingLocation = false;
   String? _locationAccuracyWarning;
@@ -65,6 +65,7 @@ class _ArbolFormPageState extends State<ArbolFormPage> {
     _observacionesController = TextEditingController();
     _latitudController = TextEditingController();
     _longitudController = TextEditingController();
+    _numeroArbolController = TextEditingController(text: '1');
   }
 
   void _loadData() {
@@ -72,7 +73,7 @@ class _ArbolFormPageState extends State<ArbolFormPage> {
       if (!mounted) return;
       context.read<ParcelaProvider>().fetchParcelas();
       context.read<EspecieProvider>().fetchEspecies();
-      
+
       // Actualizar número de árbol si es creación con parcela preseleccionada
       if (widget.arbol == null && widget.preSelectedParcelaId != null) {
         _updateNumeroArbol(widget.preSelectedParcelaId!);
@@ -83,7 +84,7 @@ class _ArbolFormPageState extends State<ArbolFormPage> {
       final arbol = widget.arbol!;
       _selectedParcelaId = arbol['parcela_id'];
       _selectedEspecieId = arbol['especie_id'];
-      _numeroArbol = arbol['numero_arbol'] ?? 1;
+      _numeroArbolController.text = (arbol['numero_arbol'] ?? 1).toString();
       _alturaController.text = arbol['altura']?.toString() ?? '';
       _diametroController.text = arbol['dap']?.toString() ?? '';
       _observacionesController.text = arbol['observaciones'] ?? '';
@@ -99,7 +100,7 @@ class _ArbolFormPageState extends State<ArbolFormPage> {
     final provider = context.read<ArbolProvider>();
     final nextNumero = await provider.getNextNumeroArbol(parcelaId);
     setState(() {
-      _numeroArbol = nextNumero;
+      _numeroArbolController.text = nextNumero.toString();
     });
   }
 
@@ -110,11 +111,12 @@ class _ArbolFormPageState extends State<ArbolFormPage> {
     _observacionesController.dispose();
     _latitudController.dispose();
     _longitudController.dispose();
+    _numeroArbolController.dispose();
     super.dispose();
   }
 
   // === MÉTODOS DE GPS ===
-  
+
   Future<void> _captureGPS() async {
     setState(() {
       _isCapturingLocation = true;
@@ -205,7 +207,7 @@ class _ArbolFormPageState extends State<ArbolFormPage> {
     try {
       final arbolData = {
         'id': widget.arbol?['id'] ?? const Uuid().v4(),
-        'numero_arbol': _numeroArbol,
+        'numero_arbol': int.parse(_numeroArbolController.text),
         'parcela_id': _selectedParcelaId!,
         'especie_id': _selectedEspecieId!,
         'altura': double.parse(_alturaController.text),
@@ -215,8 +217,8 @@ class _ArbolFormPageState extends State<ArbolFormPage> {
         'observaciones': _observacionesController.text.trim(),
         'activo': 1,
         'sincronizado': 0,
-        'fecha_creacion': widget.arbol?['fecha_creacion'] ??
-            DateTime.now().toIso8601String(),
+        'fecha_creacion':
+            widget.arbol?['fecha_creacion'] ?? DateTime.now().toIso8601String(),
         'fecha_actualizacion': DateTime.now().toIso8601String(),
       };
 
@@ -281,6 +283,8 @@ class _ArbolFormPageState extends State<ArbolFormPage> {
           children: [
             _buildParcelaDropdown(),
             const SizedBox(height: 16),
+            _buildNumeroArbolField(),
+            const SizedBox(height: 16),
             _buildEspecieDropdown(),
             const SizedBox(height: 24),
             AlturaField(controller: _alturaController),
@@ -335,6 +339,35 @@ class _ArbolFormPageState extends State<ArbolFormPage> {
     );
   }
 
+  Widget _buildNumeroArbolField() {
+    return TextFormField(
+      controller: _numeroArbolController,
+      decoration: InputDecoration(
+        labelText: 'Número de Árbol *',
+        hintText: 'Automático (editable)',
+        prefixIcon: const Icon(Icons.format_list_numbered),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        filled: true,
+        fillColor: Colors.grey[50],
+        helperText: 'Se asigna automáticamente, pero puedes cambiarlo',
+        helperMaxLines: 2,
+      ),
+      keyboardType: TextInputType.number,
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'El número de árbol es requerido';
+        }
+        final numero = int.tryParse(value);
+        if (numero == null || numero < 1) {
+          return 'Debe ser un número mayor a 0';
+        }
+        return null;
+      },
+    );
+  }
+
   Widget _buildEspecieDropdown() {
     return Selector<EspecieProvider, ({List especies, bool isLoading})>(
       selector: (_, provider) => (
@@ -350,7 +383,8 @@ class _ArbolFormPageState extends State<ArbolFormPage> {
         items: data.especies.cast<Map<String, dynamic>>(),
         displayText: (e) {
           final comun = e['nombre_comun'] ?? e['nombreComun'] ?? '';
-          final cientifico = e['nombre_cientifico'] ?? e['nombreCientifico'] ?? '';
+          final cientifico =
+              e['nombre_cientifico'] ?? e['nombreCientifico'] ?? '';
           return cientifico.isNotEmpty ? '$comun ($cientifico)' : comun;
         },
         onChanged: (v) => setState(() => _selectedEspecieId = v),
@@ -382,7 +416,8 @@ class _ArbolFormPageState extends State<ArbolFormPage> {
                 )
               : Text(
                   widget.arbol == null ? 'REGISTRAR ÁRBOL' : 'ACTUALIZAR ÁRBOL',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
                 ),
         ),
       ),
