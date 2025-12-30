@@ -77,10 +77,11 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.nature,
-              size: 100,
-              color: Colors.white,
+            Image(
+              image: AssetImage('assets/images/Logo.png'),
+              width: 150,
+              height: 150,
+              fit: BoxFit.contain,
             ),
             SizedBox(height: 24),
             Text(

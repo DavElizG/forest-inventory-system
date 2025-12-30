@@ -90,10 +90,11 @@ class _RegisterPageState extends State<RegisterPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // Logo o título
-                Icon(
-                  Icons.forest,
-                  size: 80,
-                  color: Colors.green[700],
+                Image.asset(
+                  'assets/images/Logo.png',
+                  width: 100,
+                  height: 100,
+                  fit: BoxFit.contain,
                 ),
                 const SizedBox(height: 24),
                 Text(

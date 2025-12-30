@@ -31,6 +31,7 @@ class ErrorHelper {
         backgroundColor: isNetworkError ? Colors.orange[700] : Colors.red[700],
         duration: const Duration(seconds: 4),
         behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.only(bottom: 80, left: 16, right: 16),
         action: SnackBarAction(
           label: 'Cerrar',
           textColor: Colors.white,
@@ -62,6 +63,7 @@ class ErrorHelper {
         backgroundColor: Colors.red[700],
         duration: duration,
         behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.only(bottom: 80, left: 16, right: 16),
       ),
     );
   }
@@ -86,6 +88,7 @@ class ErrorHelper {
         backgroundColor: Colors.green[700],
         duration: duration,
         behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.only(bottom: 80, left: 16, right: 16),
       ),
     );
   }
@@ -110,6 +113,7 @@ class ErrorHelper {
         backgroundColor: Colors.orange[700],
         duration: duration,
         behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.only(bottom: 80, left: 16, right: 16),
       ),
     );
   }
