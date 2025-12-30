@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:showcaseview/showcaseview.dart';
 
 import 'core/config/router_config.dart' as routes;
 import 'core/theme/app_theme.dart';
@@ -13,16 +12,14 @@ class SilvicolaApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, _) {
-        return ShowCaseWidget(
-          builder: (context) => MaterialApp(
-            title: 'Silvícola',
-            debugShowCheckedModeBanner: false,
-            theme: AppTheme.lightTheme,
-            darkTheme: AppTheme.darkTheme,
-            themeMode: themeProvider.themeMode,
-            initialRoute: routes.AppRoutes.splash,
-            routes: routes.AppRoutes.routes,
-          ),
+        return MaterialApp(
+          title: 'Silvícola',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: themeProvider.themeMode,
+          initialRoute: routes.AppRoutes.splash,
+          routes: routes.AppRoutes.routes,
         );
       },
     );

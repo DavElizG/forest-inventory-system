@@ -197,8 +197,13 @@ class LocalDatabase {
 
   Future<int> deleteParcela(String id) async {
     final db = await database;
-    // Eliminar físicamente como especies y árboles
-    return await db.delete('parcelas', where: 'id = ?', whereArgs: [id]);
+    // Soft delete - mover a papelera en lugar de eliminar
+    return await db.update(
+      'parcelas',
+      {'activo': 0, 'sincronizado': 0, 'fecha_actualizacion': DateTime.now().toIso8601String()},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
   }
 
   Future<void> marcarParcelaSincronizada(String id) async {
@@ -220,16 +225,22 @@ class LocalDatabase {
       {bool soloNoSincronizadas = false}) async {
     final db = await database;
     if (soloNoSincronizadas) {
-      return await db
-          .query('especies', where: 'sincronizado = ?', whereArgs: [0]);
+      return await db.query('especies',
+          where: 'sincronizado = ? AND activo = ?',
+          whereArgs: [0, 1],
+          orderBy: 'nombre_cientifico ASC');
     }
-    return await db.query('especies', orderBy: 'nombre_cientifico ASC');
+    // Filtrar registros en papelera (activo = 0)
+    return await db.query('especies',
+        where: 'activo = ?',
+        whereArgs: [1],
+        orderBy: 'nombre_cientifico ASC');
   }
 
   Future<Map<String, dynamic>?> getEspecieById(String id) async {
     final db = await database;
-    final results =
-        await db.query('especies', where: 'id = ?', whereArgs: [id]);
+    final results = await db.query('especies',
+        where: 'id = ? AND activo = ?', whereArgs: [id, 1]);
     return results.isNotEmpty ? results.first : null;
   }
 
@@ -242,7 +253,13 @@ class LocalDatabase {
 
   Future<int> deleteEspecie(String id) async {
     final db = await database;
-    return await db.delete('especies', where: 'id = ?', whereArgs: [id]);
+    // Soft delete - mover a papelera en lugar de eliminar
+    return await db.update(
+      'especies',
+      {'activo': 0, 'sincronizado': 0, 'fecha_actualizacion': DateTime.now().toIso8601String()},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
   }
 
   Future<void> marcarEspecieSincronizada(String id) async {
@@ -308,15 +325,19 @@ class LocalDatabase {
     String? where;
     List<dynamic>? whereArgs;
 
+    // Siempre filtrar registros en papelera (activo = 0)
     if (parcelaId != null && soloNoSincronizados) {
-      where = 'parcela_id = ? AND sincronizado = ?';
-      whereArgs = [parcelaId, 0];
+      where = 'parcela_id = ? AND sincronizado = ? AND activo = ?';
+      whereArgs = [parcelaId, 0, 1];
     } else if (parcelaId != null) {
-      where = 'parcela_id = ?';
-      whereArgs = [parcelaId];
+      where = 'parcela_id = ? AND activo = ?';
+      whereArgs = [parcelaId, 1];
     } else if (soloNoSincronizados) {
-      where = 'sincronizado = ?';
-      whereArgs = [0];
+      where = 'sincronizado = ? AND activo = ?';
+      whereArgs = [0, 1];
+    } else {
+      where = 'activo = ?';
+      whereArgs = [1];
     }
 
     return await db.query('arboles',
@@ -325,7 +346,8 @@ class LocalDatabase {
 
   Future<Map<String, dynamic>?> getArbolById(String id) async {
     final db = await database;
-    final results = await db.query('arboles', where: 'id = ?', whereArgs: [id]);
+    final results = await db.query('arboles',
+        where: 'id = ? AND activo = ?', whereArgs: [id, 1]);
     return results.isNotEmpty ? results.first : null;
   }
 
@@ -337,7 +359,13 @@ class LocalDatabase {
 
   Future<int> deleteArbol(String id) async {
     final db = await database;
-    return await db.delete('arboles', where: 'id = ?', whereArgs: [id]);
+    // Soft delete - mover a papelera en lugar de eliminar
+    return await db.update(
+      'arboles',
+      {'activo': 0, 'sincronizado': 0, 'fecha_actualizacion': DateTime.now().toIso8601String()},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
   }
 
   Future<void> marcarArbolSincronizado(String id) async {
@@ -400,12 +428,12 @@ class LocalDatabase {
             'SELECT COUNT(*) FROM parcelas WHERE sincronizado = 0 AND activo = 1')) ??
         0;
 
-    final arbolesNoSync = Sqflite.firstIntValue(await db
-            .rawQuery('SELECT COUNT(*) FROM arboles WHERE sincronizado = 0')) ??
+    final arbolesNoSync = Sqflite.firstIntValue(await db.rawQuery(
+            'SELECT COUNT(*) FROM arboles WHERE sincronizado = 0 AND activo = 1')) ??
         0;
 
     final especiesNoSync = Sqflite.firstIntValue(await db.rawQuery(
-            'SELECT COUNT(*) FROM especies WHERE sincronizado = 0')) ??
+            'SELECT COUNT(*) FROM especies WHERE sincronizado = 0 AND activo = 1')) ??
         0;
 
     final fotosNoSync = Sqflite.firstIntValue(await db

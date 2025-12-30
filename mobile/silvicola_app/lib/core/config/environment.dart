@@ -7,7 +7,6 @@ class Environment {
   static late int apiTimeout;
   static late String dbName;
   static late int dbVersion;
-  static late String? googleMapsApiKey;
   static late int syncIntervalMinutes;
   static late int maxRetryAttempts;
 
@@ -19,7 +18,6 @@ class Environment {
       apiTimeout = 30000;
       dbName = 'silvicola_web_cache';
       dbVersion = 1;
-      googleMapsApiKey = null;
       syncIntervalMinutes = 30;
       maxRetryAttempts = 3;
     } else {
@@ -29,7 +27,6 @@ class Environment {
       apiTimeout = int.tryParse(dotenv.env['API_TIMEOUT'] ?? '30000') ?? 30000;
       dbName = dotenv.env['DB_NAME'] ?? 'silvicola_local.db';
       dbVersion = int.tryParse(dotenv.env['DB_VERSION'] ?? '1') ?? 1;
-      googleMapsApiKey = dotenv.env['GOOGLE_MAPS_API_KEY'];
       syncIntervalMinutes =
           int.tryParse(dotenv.env['SYNC_INTERVAL_MINUTES'] ?? '30') ?? 30;
       maxRetryAttempts =
