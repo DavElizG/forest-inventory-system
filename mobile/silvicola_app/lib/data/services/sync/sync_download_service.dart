@@ -32,6 +32,9 @@ class SyncDownloadService {
 
         final List<Map<String, dynamic>> especiesAInsertar = [];
         final List<String> especiesASincronizar = [];
+        
+        // Crear un Set de IDs de especies del servidor
+        final Set<String> idsEnServidor = especies.map<String>((e) => e['id'].toString()).toSet();
 
         for (final especie in especies) {
           final especieDuplicada =
@@ -74,6 +77,33 @@ class SyncDownloadService {
           _logger.i(
               '✅ ${especiesASincronizar.length} especies marcadas como sincronizadas');
         }
+
+        // Eliminar (soft delete) especies locales que ya no existen en el servidor
+        int especiesEliminadas = 0;
+        for (final especieLocal in especiesExistentes) {
+          final localId = especieLocal['id'].toString();
+          
+          // Si la especie local NO está en el servidor y está sincronizada
+          if (!idsEnServidor.contains(localId) && especieLocal['sincronizado'] == 1) {
+            await _localDB.database.then((db) async {
+              await db.update(
+                'especies',
+                {
+                  'activo': 0,
+                  'sincronizado': 1,
+                  'fecha_actualizacion': DateTime.now().toIso8601String(),
+                },
+                where: 'id = ?',
+                whereArgs: [localId],
+              );
+            });
+            especiesEliminadas++;
+          }
+        }
+
+        if (especiesEliminadas > 0) {
+          _logger.i('🗑️ $especiesEliminadas especies eliminadas localmente (no existen en servidor)');
+        }
       }
     } catch (e) {
       _logger.w('Error descargando especies: $e');
@@ -96,6 +126,9 @@ class SyncDownloadService {
 
         final List<Map<String, dynamic>> parcelasAInsertar = [];
         final List<String> parcelasASincronizar = [];
+        
+        // Crear un Set de IDs de parcelas del servidor
+        final Set<String> idsEnServidor = parcelas.map<String>((p) => p['id'].toString()).toSet();
 
         for (final parcela in parcelas) {
           final parcelaDuplicada = parcelasByCodigo[parcela['codigo']];
@@ -141,6 +174,33 @@ class SyncDownloadService {
           _logger.i(
               '✅ ${parcelasASincronizar.length} parcelas marcadas como sincronizadas');
         }
+
+        // Eliminar (soft delete) parcelas locales que ya no existen en el servidor
+        int parcelasEliminadas = 0;
+        for (final parcelaLocal in parcelasExistentes) {
+          final localId = parcelaLocal['id'].toString();
+          
+          // Si la parcela local NO está en el servidor y está sincronizada
+          if (!idsEnServidor.contains(localId) && parcelaLocal['sincronizado'] == 1) {
+            await _localDB.database.then((db) async {
+              await db.update(
+                'parcelas',
+                {
+                  'activo': 0,
+                  'sincronizado': 1,
+                  'fecha_actualizacion': DateTime.now().toIso8601String(),
+                },
+                where: 'id = ?',
+                whereArgs: [localId],
+              );
+            });
+            parcelasEliminadas++;
+          }
+        }
+
+        if (parcelasEliminadas > 0) {
+          _logger.i('🗑️ $parcelasEliminadas parcelas eliminadas localmente (no existen en servidor)');
+        }
       }
     } catch (e) {
       _logger.w('Error descargando parcelas: $e');
@@ -161,6 +221,9 @@ class SyncDownloadService {
           for (var a in arbolesExistentes)
             '${a['numero_arbol']}_${a['parcela_id']}': a
         };
+
+        // Crear un Set de IDs de árboles del servidor
+        final Set<String> idsEnServidor = arboles.map<String>((a) => a['id'].toString()).toSet();
 
         final List<Map<String, dynamic>> arbolesAInsertar = [];
 
@@ -213,6 +276,33 @@ class SyncDownloadService {
         if (arbolesAInsertar.isNotEmpty) {
           await _localDB.insertArbolesBatch(arbolesAInsertar);
           _logger.i('✅ ${arbolesAInsertar.length} árboles insertados en batch');
+        }
+
+        // Eliminar (soft delete) árboles locales que ya no existen en el servidor
+        int arbolesEliminados = 0;
+        for (final arbolLocal in arbolesExistentes) {
+          final localId = arbolLocal['id'].toString();
+          
+          // Si el árbol local NO está en el servidor y está sincronizado (no es pendiente)
+          if (!idsEnServidor.contains(localId) && arbolLocal['sincronizado'] == 1) {
+            await _localDB.database.then((db) async {
+              await db.update(
+                'arboles',
+                {
+                  'activo': 0,
+                  'sincronizado': 1,
+                  'fecha_actualizacion': DateTime.now().toIso8601String(),
+                },
+                where: 'id = ?',
+                whereArgs: [localId],
+              );
+            });
+            arbolesEliminados++;
+          }
+        }
+
+        if (arbolesEliminados > 0) {
+          _logger.i('🗑️ $arbolesEliminados árboles eliminados localmente (no existen en servidor)');
         }
       }
     } catch (e) {
