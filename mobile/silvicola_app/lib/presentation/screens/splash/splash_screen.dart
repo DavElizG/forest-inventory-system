@@ -38,19 +38,12 @@ class _SplashScreenState extends State<SplashScreen> {
       if (!isAuthenticated) {
         isAuthenticated = await authProvider.tryAutoLogin();
       }
-      
-      print('🔐 Estado de autenticación: ${isAuthenticated ? "Autenticado" : "No autenticado"}');
-      if (isAuthenticated) {
-        print('👤 Usuario: ${authProvider.currentUser?.nombreCompleto}');
-      }
     } catch (e) {
-      print('⚠️ Error en inicialización: $e');
       // Intentar cargar datos locales como último recurso
       try {
         await authProvider.loadUserFromStorage();
         isAuthenticated = authProvider.isAuthenticated;
       } catch (storageError) {
-        print('❌ Error al cargar desde storage: $storageError');
         isAuthenticated = false;
       }
     }
@@ -62,7 +55,6 @@ class _SplashScreenState extends State<SplashScreen> {
       try {
         await PermissionService.requestInitialPermissions(context);
       } catch (e) {
-        print('⚠️ Error al solicitar permisos: $e');
         // Continuar aunque falle la solicitud de permisos
       }
     }

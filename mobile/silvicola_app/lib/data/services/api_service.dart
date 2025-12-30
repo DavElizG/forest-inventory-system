@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../core/config/environment.dart';
 
@@ -42,23 +43,22 @@ class ApiService {
           final token = await getToken();
           if (token != null) {
             options.headers['Authorization'] = 'Bearer $token';
-            print('[AUTH] 📤 Agregando header Authorization a ${options.path}');
-          } else {
-            print('[AUTH] ⚠️ No hay token para agregar a ${options.path}');
           }
           return handler.next(options);
         },
       ),
     );
 
-    // Add interceptors for logging and error handling
-    _dio.interceptors.add(
-      LogInterceptor(
-        requestBody: true,
-        responseBody: true,
-        logPrint: (object) => print('[DIO] $object'),
-      ),
-    );
+    // Add interceptors for logging and error handling (solo en modo debug)
+    if (kDebugMode) {
+      _dio.interceptors.add(
+        LogInterceptor(
+          requestBody: true,
+          responseBody: true,
+          logPrint: (object) => debugPrint('[DIO] $object'),
+        ),
+      );
+    }
 
     _dio.interceptors.add(
       InterceptorsWrapper(
@@ -75,27 +75,17 @@ class ApiService {
   
   // Save JWT token
   Future<void> saveToken(String token) async {
-    print('[AUTH] 💾 Guardando token JWT: ${token.substring(0, 20)}...');
     await _storage.write(key: _tokenKey, value: token);
-    print('[AUTH] ✅ Token guardado exitosamente');
   }
   
   // Get JWT token
   Future<String?> getToken() async {
-    final token = await _storage.read(key: _tokenKey);
-    if (token != null) {
-      print('[AUTH] 🔑 Token encontrado: ${token.substring(0, 20)}...');
-    } else {
-      print('[AUTH] ⚠️ No se encontró token guardado');
-    }
-    return token;
+    return await _storage.read(key: _tokenKey);
   }
   
   // Clear token (useful for logout)
   Future<void> clearToken() async {
-    print('[AUTH] 🗑️ Limpiando token JWT...');
     await _storage.delete(key: _tokenKey);
-    print('[AUTH] ✅ Token eliminado');
   }
 
   // GET request

@@ -33,27 +33,21 @@ class _LoginScreenState extends State<LoginScreen> {
 
   /// Sincronizar datos del servidor y recargar providers
   Future<void> _syncAndRefreshData() async {
-    print('[LOGIN] 🔧 Entrando a _syncAndRefreshData()');
     try {
       // 1. Ejecutar sincronización (descarga datos del servidor)
-      print('[LOGIN] 📡 Obteniendo SyncService...');
       final syncService = context.read<SyncService>();
-      print('[LOGIN] 📥 Llamando a syncAll()...');
       await syncService.syncAll();
-      print('[LOGIN] ✅ syncAll() completado');
       
       // 2. Recargar todos los providers
       if (mounted) {
-        print('[LOGIN] 🔄 Recargando providers...');
         await Future.wait([
           context.read<EspecieProvider>().fetchEspecies(),
           context.read<ParcelaProvider>().fetchParcelas(),
           context.read<ArbolProvider>().fetchArboles(),
         ]);
-        print('[LOGIN] ✅ Providers recargados');
       }
     } catch (e) {
-      print('[LOGIN] ❌ Error en sync inicial: $e');
+      // Error silencioso, la sincronización se puede hacer manualmente
     }
   }
 
@@ -73,10 +67,8 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
 
     if (success) {
-      print('[LOGIN] 🔄 Iniciando sincronización de datos...');
       // Sincronizar datos del servidor y recargar listas
       await _syncAndRefreshData();
-      print('[LOGIN] ✅ Sincronización completada');
       
       // Verificar si hay una ruta pendiente
       final pendingRoute = authProvider.consumePendingRoute();
@@ -97,12 +89,13 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           child: Form(
             key: _formKey,
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
                   Icons.nature,
@@ -215,6 +208,26 @@ class _LoginScreenState extends State<LoginScreen> {
                       );
                     },
                   ),
+                ),
+                const SizedBox(height: 16),
+                
+                // Botón de Registro
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text('¿No tienes cuenta?'),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pushNamed(context, routes.AppRoutes.register);
+                      },
+                      child: const Text(
+                        'Regístrate',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
                 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../presentation/screens/splash/splash_screen.dart';
 import '../../presentation/screens/auth/login_screen.dart';
+import '../../presentation/pages/auth/register_page.dart';
 import '../../presentation/screens/home/home_screen.dart';
 // Usar implementaciones completas de pages/ en lugar de stubs de screens/
 import '../../presentation/pages/arboles/arbol_list_page.dart';
@@ -21,6 +22,7 @@ class AppRoutes {
   // Route names
   static const String splash = '/';
   static const String login = '/login';
+  static const String register = '/register';
   static const String home = '/home';
   static const String arbolList = '/arboles';
   static const String arbolForm = '/arboles/form';
@@ -37,6 +39,7 @@ class AppRoutes {
   static Map<String, WidgetBuilder> get routes => {
         splash: (context) => const SplashScreen(),
         login: (context) => const LoginScreen(),
+        register: (context) => const RegisterPage(),
         home: (context) => const AuthGuardedRoute(child: HomeScreen()),
         arbolList: (context) => const AuthGuardedRoute(child: ArbolListPage()),
         arbolForm: (context) => const AuthGuardedRoute(child: ArbolFormPage()),

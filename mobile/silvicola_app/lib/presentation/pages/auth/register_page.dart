@@ -18,7 +18,6 @@ class _RegisterPageState extends State<RegisterPage> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   
-  String _selectedRol = 'Técnico Forestal';
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
@@ -44,7 +43,7 @@ class _RegisterPageState extends State<RegisterPage> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
         nombreCompleto: _nombreController.text.trim(),
-        rol: RolUsuario.getValueFromDisplayName(_selectedRol),
+        rol: RolUsuario.consultor.value, // Asignar automáticamente el rol más bajo
       );
 
       if (success && mounted) {
@@ -162,28 +161,6 @@ class _RegisterPageState extends State<RegisterPage> {
                     return null;
                   },
                   textInputAction: TextInputAction.next,
-                ),
-                const SizedBox(height: 16),
-
-                // Rol
-                DropdownButtonFormField<String>(
-                  initialValue: _selectedRol,
-                  decoration: InputDecoration(
-                    labelText: 'Rol *',
-                    prefixIcon: const Icon(Icons.badge),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  items: RolUsuario.displayNames.map((rol) {
-                    return DropdownMenuItem(
-                      value: rol,
-                      child: Text(rol),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() => _selectedRol = value!);
-                  },
                 ),
                 const SizedBox(height: 16),
 

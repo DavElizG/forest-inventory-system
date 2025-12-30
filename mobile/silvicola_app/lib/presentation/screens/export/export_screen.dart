@@ -32,7 +32,7 @@ class _ExportScreenState extends State<ExportScreen> {
         _exportSummary = summary;
       });
     } catch (e) {
-      print('Error cargando resumen: $e');
+      // Error silencioso
     }
   }
 
